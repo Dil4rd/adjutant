@@ -1,0 +1,29 @@
+name: Release
+
+# On a version tag (e.g. v0.1.0): build the single self-contained index.html
+# via Docker and attach it to a GitHub Release.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Same build as local: exports dist/index.html.
+      - name: Build single-file artifact
+        run: docker build --target artifact -o dist .
+
+      - name: Version the artifact filename
+        run: cp dist/index.html "adjutant-${GITHUB_REF_NAME}.html"
+
+      - name: Create release and attach the artifact
+        uses: softprops/action-gh-release@v2
+        with:
+          files: adjutant-${{ github.ref_name }}.html
+          generate_release_notes: true
