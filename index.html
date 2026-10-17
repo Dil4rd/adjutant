@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Adutant — Project Roadmap Calendar</title>
+<title>Adjutant — Project Roadmap Calendar</title>
 <style>
 :root {
   --bg: #0d1117;
@@ -282,7 +282,7 @@ header.bar {
 <!-- ======================= LOCK SCREEN ======================= -->
 <div id="lock">
   <div class="lock-card">
-    <h1>Adutant</h1>
+    <h1>Adjutant</h1>
     <p class="sub">Project roadmap calendar — encrypted in your browser.</p>
 
     <!-- enrol (first run) -->
@@ -334,7 +334,7 @@ header.bar {
 <!-- ======================= APP ======================= -->
 <div id="app" class="hidden">
   <header class="bar">
-    <div class="brand">Adutant <span>roadmap</span></div>
+    <div class="brand">Adjutant <span>roadmap</span></div>
     <div class="group boxed" id="viewToggle">
       <button data-months="1">1 Month</button>
       <button data-months="2">2 Months</button>
@@ -478,7 +478,7 @@ header.bar {
 <script>
 "use strict";
 /* ===========================================================================
- * Adutant — a single-file project roadmap calendar.
+ * Adjutant — a single-file project roadmap calendar.
  *
  * Architecture (after Dil4rd/hindsightly):
  *   WebAuthn PRF  ->  HKDF  ->  AES-GCM, with no server and no signature
@@ -512,8 +512,8 @@ const enc = new TextEncoder();
 const dec = new TextDecoder();
 
 /* ---------- WebAuthn as a PRF oracle ---------- */
-const RP_NAME = "Adutant";
-const PRF_SALT = enc.encode("adutant:prf:v1");
+const RP_NAME = "Adjutant";
+const PRF_SALT = enc.encode("adjutant:prf:v1");
 const prfExtension = () => ({ prf: { eval: { first: PRF_SALT } } });
 
 function isWebAuthnAvailable() {
@@ -573,8 +573,8 @@ async function getPrfOutput(credentialIds) {
 }
 
 /* ---------- key derivation ---------- */
-const HKDF_SALT = enc.encode("adutant:hkdf:v1");
-const KEK_INFO = enc.encode("adutant/kek/v1");
+const HKDF_SALT = enc.encode("adjutant:hkdf:v1");
+const KEK_INFO = enc.encode("adjutant/kek/v1");
 const PBKDF2_ITER = 600000;
 
 async function kekFromPrf(prfOutput) {
@@ -600,8 +600,8 @@ async function kekFromPassphrase(passphrase, salt, iterations) {
 }
 
 /* ---------- the vault: recipients wrapping one data key ---------- */
-const LS_VAULT = "adutant:vault:v1";
-const LS_DATA = "adutant:data:v1";
+const LS_VAULT = "adjutant:vault:v1";
+const LS_DATA = "adjutant:data:v1";
 
 function loadVault() {
   try {
@@ -1238,7 +1238,7 @@ function fail(id, msg) { $(id).textContent = msg; }
 $("btnExport").addEventListener("click", () => {
   const payload = {
     version: 1,
-    app: "adutant-roadmap",
+    app: "adjutant-roadmap",
     exportedAt: new Date().toISOString(),
     meta: { ...state.meta, taskCount: state.tasks.length,
       projects: [...new Set(state.tasks.map((t) => t.project))].sort() },

@@ -1,4 +1,4 @@
-# Adutant — Project Roadmap Calendar
+# Adjutant — Project Roadmap Calendar
 
 A single-file, offline project roadmap calendar. Open `index.html` and that is
 the whole application: no build step, no dependencies, no network calls.
@@ -14,7 +14,7 @@ Hindsightly encrypts a short Todoist token once per enrolled passkey. Here the
 secret *is* the dataset, which grows, so this uses **envelope encryption**:
 
 ```
-passkey PRF output ──HKDF(info: adutant/kek/v1)──► KEK ──unwraps──► DEK ──AES-GCM──► roadmap
+passkey PRF output ──HKDF(info: adjutant/kek/v1)──► KEK ──unwraps──► DEK ──AES-GCM──► roadmap
 passphrase ────────PBKDF2-SHA256, 600k iters─────► KEK ──unwraps──► DEK
 ```
 
@@ -24,7 +24,7 @@ passphrase ────────PBKDF2-SHA256, 600k iters─────► K
   and **+ Backup key** enrolls another without re-encrypting any data.
 - The DEK exists only in memory for the session. **Lock** drops it.
 - `localStorage` holds two keys, neither readable without unlocking:
-  `adutant:vault:v1` (wrapped DEKs) and `adutant:data:v1` (AES-GCM ciphertext).
+  `adjutant:vault:v1` (wrapped DEKs) and `adjutant:data:v1` (AES-GCM ciphertext).
 
 Passkeys need a secure context — serve over `https://` or `localhost`. The
 passphrase path is the fallback for browsers or authenticators without PRF.
