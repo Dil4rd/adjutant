@@ -1,11 +1,22 @@
-export const STATUSES = ['active', 'intensive', 'hold'] as const
+export const STATUSES = ['intensive', 'background', 'hold'] as const
 export type Status = (typeof STATUSES)[number]
 
+/** Loudest to quietest — the order the editor and legend present them in. */
 export const STATUS_LABEL: Record<Status, string> = {
-  active: 'Active',
   intensive: 'Intensive',
+  background: 'Background / tentative',
   hold: 'On-hold',
 }
+
+/** Short form, for places where the full label will not fit. */
+export const STATUS_SHORT: Record<Status, string> = {
+  intensive: 'Intensive',
+  background: 'Background',
+  hold: 'On-hold',
+}
+
+/** The state a task takes when none is given, or an unknown one is supplied. */
+export const DEFAULT_STATUS: Status = 'intensive'
 
 /**
  * The interchange record. These field names are canonical — they are what the
@@ -22,6 +33,12 @@ export interface Task {
   executor: string
   startDate: string // YYYY-MM-DD
   endDate: string // YYYY-MM-DD, inclusive
+  /**
+   * How hard the work is running, loudest to quietest:
+   * `intensive` (full throttle) · `background` (low-intensity or not yet
+   * committed) · `hold` (blocked). There is no neutral "active" state — a
+   * stage is either being driven, ticking over, or stopped.
+   */
   status: Status
   /**
    * Deliberately binary: the only distinction that matters is whether the work

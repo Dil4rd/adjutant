@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { normalizeTask, seedTasks, uid } from '../src/lib/roadmap/model'
 import { diffDays, todayISO } from '../src/lib/roadmap/dates'
+import { paletteFor } from '../src/lib/roadmap/colors'
 import type { Task } from '../src/lib/roadmap/types'
 
 const SPEC: Task = {
@@ -10,7 +11,7 @@ const SPEC: Task = {
   executor: 'Core Team',
   startDate: '2026-10-19',
   endDate: '2026-10-28',
-  status: 'active',
+  status: 'intensive',
   isMyTeam: true,
   color: '#8b5cf6',
   comments: 'Establish the baseline, run internal testing, and scope the wider pilot group.',
@@ -50,7 +51,17 @@ describe('coercion', () => {
   })
 
   it('rejects an unknown status', () => {
-    expect(normalizeTask({ status: 'nope' }).status).toBe('active')
+    expect(normalizeTask({ status: 'nope' }).status).toBe('intensive')
+  })
+
+  it('defaults a missing status to intensive', () => {
+    expect(normalizeTask({}).status).toBe('intensive')
+  })
+
+  it('accepts all three intensities', () => {
+    for (const st of ['intensive', 'background', 'hold'] as const) {
+      expect(normalizeTask({ status: st }).status).toBe(st)
+    }
   })
 
   it('rejects a malformed date', () => {
@@ -77,9 +88,18 @@ describe('coercion', () => {
     }
   })
 
-  it('assigns palette colours by index', () => {
-    expect(normalizeTask({ isMyTeam: true }, 0).color).toBe('#8b5cf6')
-    expect(normalizeTask({ isMyTeam: false }, 0).color).toBe('#64748b')
+  it('assigns palette colours by index, cycling when they run out', () => {
+    const mine = paletteFor(true)
+    const theirs = paletteFor(false)
+    expect(normalizeTask({ isMyTeam: true }, 0).color).toBe(mine[0])
+    expect(normalizeTask({ isMyTeam: true }, 3).color).toBe(mine[3])
+    expect(normalizeTask({ isMyTeam: true }, mine.length).color).toBe(mine[0])
+    expect(normalizeTask({ isMyTeam: false }, 0).color).toBe(theirs[0])
+  })
+
+  it('keeps an explicit colour over the palette default', () => {
+    expect(normalizeTask({ isMyTeam: true, color: '#8b5cf6' }, 0).color).toBe('#8b5cf6')
+    expect(normalizeTask({ isMyTeam: false, color: '#64748b' }, 0).color).toBe('#64748b')
   })
 
   it('clamps overlong text', () => {
@@ -102,6 +122,10 @@ describe('legacy aliases still load', () => {
   it('maps team to isMyTeam', () => expect(legacy.isMyTeam).toBe(false))
   it('maps notes to comments', () => expect(legacy.comments).toBe('note body'))
   it('maps owner to executor', () => expect(legacy.executor).toBe('Owner Name'))
+  it('upgrades the retired "active" status to intensive', () => {
+    // 'active' was the old neutral state; it no longer exists.
+    expect(normalizeTask({ status: 'active' }).status).toBe('intensive')
+  })
   it('treats team:"internal" as mine', () => {
     expect(normalizeTask({ team: 'internal' }).isMyTeam).toBe(true)
   })
@@ -123,8 +147,19 @@ describe('seed roadmap', () => {
     expect(seed.map((t) => normalizeTask(t))).toEqual(seed)
   })
 
-  it('pairs my team with the external team', () => {
+  it('pairs my team with the other team', () => {
     expect(seed.filter((t) => t.isMyTeam)).toHaveLength(4)
+  })
+
+  it('tags the low-intensity oversight stages as background', () => {
+    const background = seed.filter((t) => t.status === 'background')
+    expect(background.map((t) => t.id)).toEqual(['sample-02b', 'sample-03b', 'sample-04b'])
+    // and each of those is exactly the one whose comment says so
+    expect(background.every((t) => /low-intensity/i.test(t.comments))).toBe(true)
+  })
+
+  it('leaves no stage on a retired status', () => {
+    expect(seed.every((t) => ['intensive', 'background', 'hold'].includes(t.status))).toBe(true)
   })
 
   it('runs its stages consecutively without overlap', () => {

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { blockSkin } from '../lib/roadmap/colors'
-  import { STATUS_LABEL } from '../lib/roadmap/types'
+  import { STATUS_SHORT } from '../lib/roadmap/types'
   import type { Segment } from '../lib/roadmap/layout'
 
   let {
@@ -38,7 +38,7 @@
     `${t.project} — ${t.stage}` +
       (t.executor ? `\nExecutor: ${t.executor}` : '') +
       `\n${t.startDate} → ${t.endDate}` +
-      `\n${STATUS_LABEL[t.status]} · ${t.isMyTeam ? 'Internal' : 'External'}` +
+      `\n${STATUS_SHORT[t.status]} · ${t.isMyTeam ? 'My team' : 'Not my team'}` +
       (t.comments ? `\n\n${t.comments}` : ''),
   )
 </script>
@@ -53,6 +53,6 @@
 >
   <div class="handle l" data-edge="start"></div>
   <div class="t1">{showProject ? `${t.project} · ${t.stage}` : t.stage}</div>
-  <div class="t2">{t.executor || '—'}</div>
+  {#if t.executor}<div class="t2">{t.executor}</div>{/if}
   <div class="handle r" data-edge="end"></div>
 </div>

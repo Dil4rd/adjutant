@@ -3,7 +3,7 @@
   import { paletteFor } from '../lib/roadmap/colors'
   import { shiftISO, todayISO } from '../lib/roadmap/dates'
   import { normalizeTask } from '../lib/roadmap/model'
-  import type { Status, Task } from '../lib/roadmap/types'
+  import { STATUSES, STATUS_LABEL, type Task } from '../lib/roadmap/types'
 
   let {
     task,
@@ -107,16 +107,17 @@
         </datalist>
       </div>
       <div>
-        <!-- svelte-ignore a11y_label_has_associated_control -->
-        <label>Team classification</label>
-        <div class="seg" id="fTeam">
-          <button data-myteam="true" class:on={draft.isMyTeam} onclick={() => setTeam(true)}>
-            Internal
-          </button>
-          <button data-myteam="false" class:on={!draft.isMyTeam} onclick={() => setTeam(false)}>
-            External
-          </button>
-        </div>
+        <label for="fMyTeam">Ownership</label>
+        <label class="check" for="fMyTeam">
+          <input
+            id="fMyTeam"
+            type="checkbox"
+            checked={draft.isMyTeam}
+            onchange={(e) => setTeam((e.currentTarget as HTMLInputElement).checked)}
+          />
+          <span class="cap">My team</span>
+          <span class="why">{draft.isMyTeam ? 'vibrant' : 'greyed out'}</span>
+        </label>
       </div>
     </div>
 
@@ -133,14 +134,12 @@
 
     <div class="field">
       <!-- svelte-ignore a11y_label_has_associated_control -->
-      <label>Status</label>
+      <label>Intensity</label>
       <div class="seg" id="fStatus">
-        {#each [['active', 'Active'], ['intensive', 'Intensive'], ['hold', 'On-hold']] as [key, text] (key)}
-          <button
-            data-status={key}
-            class:on={draft.status === key}
-            onclick={() => (draft.status = key as Status)}>{text}</button
-          >
+        {#each STATUSES as key (key)}
+          <button data-status={key} class:on={draft.status === key} onclick={() => (draft.status = key)}>
+            {STATUS_LABEL[key]}
+          </button>
         {/each}
       </div>
     </div>
@@ -148,9 +147,7 @@
     <div class="field">
       <!-- svelte-ignore a11y_label_has_associated_control -->
       <label id="fColorLabel">
-        {draft.isMyTeam
-          ? 'Colour — internal work uses vibrant tones'
-          : 'Colour — external work uses grey tones'}
+        {draft.isMyTeam ? 'Colour' : 'Colour — not-my-team work is greyed'}
       </label>
       <div class="swatches" id="fColor">
         {#each palette as c (c)}

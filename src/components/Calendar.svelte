@@ -15,9 +15,10 @@
     onCommit: () => void
   } = $props()
 
-  const LANE_H = 36
-  const BLOCK_H = 30
-  const LANE_PAD = 4
+  // Slim: one line per block, so a dense week stays short.
+  const LANE_H = 25
+  const BLOCK_H = 21
+  const LANE_PAD = 3
 
   let host: HTMLDivElement
 

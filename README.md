@@ -110,13 +110,30 @@ reaching those globs is this repo's own Vite config.
 
 ## Visual encoding
 
-| | |
+Intensity runs loudest to quietest. There is no neutral state: a stage is
+either being driven, ticking over, or stopped.
+
+| Intensity | Treatment |
 |---|---|
-| **Active** | solid border |
-| **Intensive / crunch** | dashed border + diagonal stripes |
-| **On-hold / blocked** | dotted border + dot pattern, dimmed fill |
-| **Internal / my team** | vibrant hues |
-| **External / contractor / client** | grey tones |
+| **Intensive** | solid border, strongest fill, faint diagonal sheen |
+| **Background / tentative** | dashed border, muted fill, no texture |
+| **On-hold** | dotted border, dimmest fill, dot texture |
+
+Loud work reads *clean and confident* rather than busy — the stripe texture is
+deliberately near-invisible at a glance, because `intensive` is the common
+state and texturing everything would just be noise.
+
+| Ownership | Treatment |
+|---|---|
+| **My team** | vibrant hue |
+| **Not my team** | greyed, and recedes a further step in fill weight |
+
+Ownership is a single boolean. Cross-functional teams, contractors and vendors
+are all simply *not my team*, and all recede. Weight does the work as well as
+hue, so the two read apart even in a greyscale screenshot.
+
+Chrome colours follow hindsightly's warm near-black; task colours are tuned to
+sit on it, warm end first.
 
 Weeks start **Monday** everywhere. A task spanning several weeks renders one
 segment per week row; cut edges lose their border and radius so they read as
@@ -154,9 +171,10 @@ step with an imported file.
 ]
 ```
 
-- `status` — `"active"` | `"intensive"` | `"hold"`; anything else falls back to
-  `"active"`.
-- `isMyTeam` — `true` renders a vibrant hue, `false` a grey tone. The flag is
+- `status` — `"intensive"` | `"background"` | `"hold"`; anything else falls
+  back to `"intensive"`.
+- `isMyTeam` — `true` renders a vibrant hue, `false` a greyed, recessed one.
+  The flag is
   deliberately binary: the only distinction that matters is whether the work is
   mine to drive. Cross-functional teams inside the company, contractors and
   third-party vendors are all simply *not my team*, and all recede to grey — so
@@ -169,6 +187,12 @@ step with an imported file.
 **Import** accepts a bare array of these objects, or an export envelope
 `{ version, app, exportedAt, meta, tasks }`, in replace or merge-by-id mode.
 Legacy aliases (`title`, `start`, `end`, `team`, `notes`, `owner`) still load.
+
+**Migration note.** `"active"` was the old neutral status and no longer exists.
+A file containing it still imports — every `"active"` stage becomes
+`"intensive"` — but it will *not* round-trip byte-for-byte, because that is the
+one field the upgrade rewrites. Re-tag anything that was really ticking over as
+`"background"`.
 
 **Export** writes the envelope — tasks *and* metadata — but every object inside
 `tasks` is exactly the shape above, and re-importing an export is a no-op.
@@ -196,8 +220,11 @@ still opens the vault.
 ## Notes on the supplied roadmap
 
 `seedTasks()` holds the Example Programme roadmap, so a fresh browser opens
-on real data. Worth a look: **every stage is `"active"`**, so the dashed/striped
-and dotted treatments never appear in this dataset, and the paired oversight
-tracks render identically to the delivery work they shadow. The `comments` on
-four stages say *"low-intensity"* — a real distinction in intensity that
-`status` is the natural home for.
+on real data.
+
+The three stages whose `comments` say *"low-intensity"* — Stage 2b, 3b and 4b,
+the oversight halves — are tagged `background`; the delivery stages they shadow
+are `intensive`. That distinction was only ever in the prose until there was a
+status that could carry it, and it is why the oversight tracks now visibly
+recede behind the work they shadow. Change them back in `seedTasks()` if you
+would rather they all read the same.

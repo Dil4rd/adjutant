@@ -9,22 +9,32 @@ const SPEC_ARRAY = [
   {
     id: 'sample-01a', project: 'Example Programme',
     stage: 'Stage 1: Baseline & Testing', executor: 'Core Team',
-    startDate: '2026-10-19', endDate: '2026-10-28', status: 'active',
+    startDate: '2026-10-19', endDate: '2026-10-28', status: 'intensive',
     isMyTeam: true, color: '#8b5cf6',
     comments: 'Establish the baseline, run internal testing, and scope the wider pilot group.',
   },
   {
     id: 'sample-01b', project: 'Example Programme',
     stage: 'Stage 1: Policy & Testing Support', executor: 'Partner Team',
-    startDate: '2026-10-19', endDate: '2026-10-28', status: 'active',
+    startDate: '2026-10-19', endDate: '2026-10-28', status: 'background',
     isMyTeam: false, color: '#64748b',
     comments: 'Answer technical queries, draft policies, and assist with testing.',
   },
 ]
 
 describe('import', () => {
-  it('accepts the supplied array verbatim', () => {
+  it('accepts a current-format array verbatim', () => {
     expect(parseImport(JSON.stringify(SPEC_ARRAY)).tasks).toEqual(SPEC_ARRAY)
+  })
+
+  it('upgrades a legacy file whose stages are all "active"', () => {
+    const legacy = SPEC_ARRAY.map((t) => ({ ...t, status: 'active' }))
+    const { tasks } = parseImport(JSON.stringify(legacy))
+    expect(tasks.every((t) => t.status === 'intensive')).toBe(true)
+    // everything else survives the upgrade untouched
+    expect(tasks.map(({ status, ...rest }) => rest)).toEqual(
+      SPEC_ARRAY.map(({ status, ...rest }) => rest),
+    )
   })
 
   it('accepts an export envelope', () => {
@@ -51,7 +61,7 @@ describe('import', () => {
 
   it('fills defaults for a sparse record', () => {
     const [t] = parseImport('[{"project":"P","stage":"S"}]').tasks
-    expect(t.status).toBe('active')
+    expect(t.status).toBe('intensive')
     expect(t.isMyTeam).toBe(true)
     expect(t.executor).toBe('')
     expect(t.id).toMatch(/^t_/)

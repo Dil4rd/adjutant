@@ -33,7 +33,7 @@
 </script>
 
 <section class="month">
-  <h2>{MONTHS[month]} {year}</h2>
+  <h2>{MONTHS[month]} <span class="yr">{year}</span></h2>
   <div class="dow">
     {#each DOW as d, i (d)}
       <div class:we={i > 4}>{d}</div>
@@ -58,7 +58,7 @@
       </div>
       <div
         class="week-blocks"
-        style="height:{week.layout.laneCount ? week.layout.laneCount * laneH + lanePad : 8}px"
+        style="height:{week.layout.laneCount ? week.layout.laneCount * laneH + lanePad : 6}px"
       >
         {#each week.layout.segs as seg (seg.task.id)}
           <TaskBlock {seg} {showProject} {laneH} {blockH} {lanePad} />
