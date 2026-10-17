@@ -94,38 +94,69 @@ export interface Skin {
   text: string
 }
 
-// How far each state's fill is pulled back toward the page, loudest first.
-// Intensity is carried by weight as well as by border style and texture, so
-// the three states read apart even in a grey screenshot.
-const FILL_TOWARD_BG: Record<Task['status'], number> = {
-  intensive: 0.52,
-  background: 0.74,
-  hold: 0.82,
-}
-const BORDER_TOWARD_WHITE: Record<Task['status'], number> = {
-  intensive: 0.24,
-  background: 0.10,
-  hold: 0.02,
+// The page the blocks sit on, and the lightest ink available.
+const PAGE = '#14110f'
+const INK = '#f3ede7'
+
+/** WCAG contrast ratio between two opaque colours. */
+export function contrastRatio(a: string, b: string): number {
+  const l1 = luminance(a)
+  const l2 = luminance(b)
+  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)
 }
 
-// Work that is not mine recedes a further step, on top of whatever its
-// intensity already does — "out of focus" is about weight, not only hue.
-const NOT_MINE_EXTRA_RECESSION = 0.1
+/**
+ * Re-weight a colour until it sits at `target` contrast against the page,
+ * darkening toward the page or lightening toward the ink as needed.
+ *
+ * Mixing by a fixed RATIO does not work here: how dark the result lands
+ * depends entirely on how dark the chosen hue already was, so a slate blue
+ * recedes into invisibility while a yellow stays loud. Targeting the ratio
+ * itself makes every hue land at the same visual weight.
+ */
+function atContrast(base: string, target: number): string {
+  const toward = contrastRatio(base, PAGE) > target ? PAGE : INK
+  let lo = 0
+  let hi = 1
+  for (let i = 0; i < 20; i++) {
+    const mid = (lo + hi) / 2
+    const over = contrastRatio(mix(base, toward, mid), PAGE) > target
+    if (toward === PAGE ? over : !over) lo = mid
+    else hi = mid
+  }
+  return mix(base, toward, (lo + hi) / 2)
+}
+
+/**
+ * Where each block's fill sits against the page, loudest first. Quieter work
+ * recedes, and not-my-team recedes a further step — but nothing is allowed to
+ * reach the page itself: the quietest combination still separates at 1.3:1.
+ * (Mix-ratio tuning previously put on-hold/not-mine at 1.09:1 — a block you
+ * could only find by its dotted outline.)
+ */
+const FILL_TARGET: Record<Task['status'], { mine: number; theirs: number }> = {
+  intensive: { mine: 2.1, theirs: 1.75 },
+  background: { mine: 1.72, theirs: 1.48 },
+  hold: { mine: 1.5, theirs: 1.32 },
+}
+
+/**
+ * The border carries the block's boundary, so it clears WCAG 1.4.11's 3:1 for
+ * non-text contrast in every state — that is what keeps a receded block
+ * unambiguously present rather than merely faint.
+ */
+const BORDER_TARGET: Record<Task['status'], number> = {
+  intensive: 5.4,
+  background: 4.2,
+  hold: 3.2,
+}
 
 /** Fill / border / text for a block, derived from one base hue. */
 export function blockSkin(task: Pick<Task, 'color' | 'isMyTeam' | 'status'>): Skin {
   const base = baseColor(task)
-  // Quieter states recede through a dimmer fill; fading the element itself
-  // would take the label with it and make the quietest work the hardest to read.
-  const recede = Math.min(
-    0.9,
-    FILL_TOWARD_BG[task.status] + (task.isMyTeam ? 0 : NOT_MINE_EXTRA_RECESSION),
-  )
-  const fill = mix(base, '#14110f', recede)
-  const border = mix(
-    base,
-    '#f3ede7',
-    task.isMyTeam ? BORDER_TOWARD_WHITE[task.status] : BORDER_TOWARD_WHITE[task.status] * 0.5,
-  )
+  const fillTarget = FILL_TARGET[task.status][task.isMyTeam ? 'mine' : 'theirs']
+  const borderTarget = BORDER_TARGET[task.status] * (task.isMyTeam ? 1 : 0.82)
+  const fill = atContrast(base, fillTarget)
+  const border = atContrast(base, Math.max(3.05, borderTarget))
   return { fill, border, text: luminance(fill) > 0.42 ? '#14110f' : '#f3ede7' }
 }

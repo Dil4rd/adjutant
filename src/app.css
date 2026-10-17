@@ -3,9 +3,12 @@
   --bg: #14110f;
   --panel: #1a1714;
   --panel-2: #201b17;
-  --fg: #f3ede7;
-  --muted: #9a8f84;
-  --dim: #6b625a;
+  /* Every text token clears WCAG AA (4.5:1) against --bg, including the
+     quietest one. De-emphasis is carried by the STEP between them, not by
+     pushing the bottom of the scale into the background. */
+  --fg: #f3ede7;        /* 16.2:1 */
+  --muted: #a89c90;     /*  7.0:1 */
+  --dim: #8a7f75;       /*  4.8:1 */
   --accent: #e44332;
   --border: #2e2823;
   --hair: rgba(243, 237, 231, 0.07);
@@ -89,7 +92,7 @@ label {
 .lock-card .row > button { flex: 1; padding: 0.45rem 0.7rem; }
 .lock-sep {
   display: flex; align-items: center; gap: 0.6rem;
-  color: var(--dim); font-size: 0.65rem; text-transform: uppercase;
+  color: var(--dim); font-size: 0.66rem; text-transform: uppercase;
   letter-spacing: 0.1em; margin: 1.1rem 0 0.7rem;
 }
 .lock-sep::before, .lock-sep::after { content: ""; flex: 1; height: 1px; background: var(--border); }
@@ -108,7 +111,7 @@ header.bar {
 .brand {
   font-weight: 650; letter-spacing: -0.02em; margin-right: 0.35rem; font-size: 0.9rem;
 }
-.brand span { color: var(--dim); font-weight: 400; font-size: 0.72rem; }
+.brand span { color: var(--dim); font-weight: 400; font-size: 0.74rem; }
 .group { display: flex; gap: 0.2rem; align-items: center; }
 .group.boxed { border: 1px solid var(--border); border-radius: 7px; padding: 1px; gap: 1px; }
 .group.boxed button { border: none; padding: 0.25rem 0.55rem; font-size: 0.78rem; border-radius: 6px; }
@@ -126,7 +129,7 @@ header.bar button { font-size: 0.78rem; }
   border-bottom: 1px solid var(--border);
 }
 .filters .label {
-  font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.1em;
+  font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.1em;
   color: var(--dim); margin-right: 0.25rem;
 }
 .filters button {
@@ -147,7 +150,7 @@ header.bar button { font-size: 0.78rem; }
   margin: 0 0 0.2rem;
   padding: 0.9rem;
   text-align: center;
-  color: var(--dim);
+  color: var(--muted);
   font-size: 0.8rem;
   border: 1px dashed var(--border);
   border-radius: 8px;
@@ -163,23 +166,26 @@ header.bar button { font-size: 0.78rem; }
 
 .dow { display: grid; grid-template-columns: repeat(7, 1fr); }
 .dow div {
-  padding: 0 0.3rem 0.3rem; font-size: 0.6rem; color: var(--dim);
+  padding: 0 0.3rem 0.3rem; font-size: 0.62rem; color: var(--muted);
   text-transform: uppercase; letter-spacing: 0.09em; text-align: left;
 }
-.dow div.we { color: #4b443d; }
+/* weekends read quieter here AND carry a background tint on .day.we */
+.dow div.we { color: var(--dim); }
 
 .week { position: relative; border-top: 1px solid var(--hair); }
 .week:last-child { border-bottom: 1px solid var(--hair); }
 .week-days { display: grid; grid-template-columns: repeat(7, 1fr); }
 .day {
   padding: 0.22rem 0.35rem 0;
-  font-size: 0.66rem; color: var(--dim);
+  font-size: 0.68rem; color: var(--muted);
   min-height: 1.1rem;
   font-variant-numeric: tabular-nums;
   border-right: 1px solid rgba(243, 237, 231, 0.035);
 }
 .day:last-child { border-right: none; }
-.day.out { color: #3b352f; }
+/* Out-of-month days stay clearly secondary via the step down from --muted,
+   not by fading out — the previous value was 1.55:1, i.e. invisible. */
+.day.out { color: var(--dim); }
 .day.we { background: rgba(0, 0, 0, 0.16); }
 .day.today .n {
   color: var(--accent); font-weight: 700;
@@ -211,7 +217,7 @@ header.bar button { font-size: 0.78rem; }
   overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
 .block .t2 {
-  font-size: 0.68rem; opacity: 0.6; font-weight: 400;
+  font-size: 0.68rem; opacity: 0.78; font-weight: 400;
   overflow: hidden; text-overflow: ellipsis; flex-shrink: 2; min-width: 0;
 }
 .block.clip-s { border-top-left-radius: 0; border-bottom-left-radius: 0; border-left-style: none; }
@@ -252,7 +258,7 @@ header.bar button { font-size: 0.78rem; }
 }
 .legend .set { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
 .legend .set > strong {
-  font-weight: 600; color: var(--dim); font-size: 0.62rem;
+  font-weight: 600; color: var(--muted); font-size: 0.64rem;
   text-transform: uppercase; letter-spacing: 0.1em;
 }
 .legend .item { display: flex; gap: 0.3rem; align-items: center; }
@@ -268,7 +274,7 @@ header.bar button { font-size: 0.78rem; }
   background-size: 4px 4px;
 }
 .dot { width: 9px; height: 9px; border-radius: 2px; }
-#saveState { color: var(--dim); font-size: 0.7rem; font-variant-numeric: tabular-nums; }
+#saveState { color: var(--dim); font-size: 0.72rem; font-variant-numeric: tabular-nums; }
 
 /* ---------- modals ---------- */
 .overlay {
@@ -307,7 +313,7 @@ header.bar button { font-size: 0.78rem; }
 .check:hover { background: rgba(243, 237, 231, 0.04); }
 .check input { width: auto; margin: 0; accent-color: var(--accent); cursor: pointer; }
 .check .cap { font-size: 0.82rem; }
-.check .why { color: var(--dim); font-size: 0.72rem; margin-left: auto; }
+.check .why { color: var(--dim); font-size: 0.74rem; margin-left: auto; }
 
 .drop-zone {
   border: 1px dashed var(--border); border-radius: 8px;

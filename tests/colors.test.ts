@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
-  MY_TEAM_COLORS, OTHER_TEAM_COLORS, baseColor, blockSkin, hexToRgb, luminance, mix,
-  paletteFor, saturationSpread, toGrey,
+  MY_TEAM_COLORS, OTHER_TEAM_COLORS, baseColor, blockSkin, contrastRatio, hexToRgb,
+  luminance, mix, paletteFor, saturationSpread, toGrey,
 } from '../src/lib/roadmap/colors'
+import { STATUSES, type Status } from '../src/lib/roadmap/types'
 
 describe('colour maths', () => {
   it('expands shorthand hex', () => {
@@ -75,6 +76,51 @@ describe('ownership hierarchy', () => {
   })
 })
 
+const PAGE = '#14110f'
+
+describe('block legibility', () => {
+  const combos = STATUSES.flatMap((status) =>
+    [true, false].map((isMyTeam) => ({ status, isMyTeam })),
+  )
+  // every ramp colour, plus adversarial choices an import could carry
+  const hues = [...MY_TEAM_COLORS, ...OTHER_TEAM_COLORS, '#000000', '#ffffff', '#0a0a0a', '#1a1a2e']
+
+  it('never lets a block sink into the page', () => {
+    for (const hue of hues) {
+      for (const c of combos) {
+        const { fill } = blockSkin({ ...c, color: hue })
+        expect(contrastRatio(fill, PAGE)).toBeGreaterThanOrEqual(1.29)
+      }
+    }
+  })
+
+  it('keeps every block boundary at WCAG 1.4.11 non-text contrast (3:1)', () => {
+    for (const hue of hues) {
+      for (const c of combos) {
+        const { border } = blockSkin({ ...c, color: hue })
+        expect(contrastRatio(border, PAGE)).toBeGreaterThanOrEqual(3)
+      }
+    }
+  })
+
+  it('keeps label text readable on every fill', () => {
+    for (const hue of hues) {
+      for (const c of combos) {
+        const { fill, text } = blockSkin({ ...c, color: hue })
+        // 4.5:1 is AA for the small type used inside a block
+        expect(contrastRatio(text, fill)).toBeGreaterThanOrEqual(4.5)
+      }
+    }
+  })
+
+  it('lands any hue at the same visual weight, dark or light', () => {
+    const c = { status: 'intensive' as Status, isMyTeam: true }
+    const black = contrastRatio(blockSkin({ ...c, color: '#000000' }).fill, PAGE)
+    const white = contrastRatio(blockSkin({ ...c, color: '#ffffff' }).fill, PAGE)
+    expect(Math.abs(black - white)).toBeLessThan(0.15)
+  })
+})
+
 describe('block skin', () => {
   const base = { color: '#8b5cf6', isMyTeam: true } as const
 
@@ -91,6 +137,14 @@ describe('block skin', () => {
       luminance(blockSkin({ ...base, status }).border)
     expect(b('intensive')).toBeGreaterThan(b('background'))
     expect(b('background')).toBeGreaterThan(b('hold'))
+  })
+
+  it('recedes not-my-team below my team at the same intensity', () => {
+    for (const status of STATUSES) {
+      const mine = contrastRatio(blockSkin({ color: '#8b5cf6', isMyTeam: true, status }).fill, PAGE)
+      const theirs = contrastRatio(blockSkin({ color: '#8b5cf6', isMyTeam: false, status }).fill, PAGE)
+      expect(theirs).toBeLessThan(mine)
+    }
   })
 
   it('picks a readable text colour on both ends', () => {

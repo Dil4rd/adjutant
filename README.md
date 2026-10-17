@@ -135,6 +135,18 @@ hue, so the two read apart even in a greyscale screenshot.
 Chrome colours follow hindsightly's warm near-black; task colours are tuned to
 sit on it, warm end first.
 
+**Contrast is a constraint, not an afterthought.** Every text token clears
+WCAG AA (4.5:1) against the page, including the quietest — de-emphasis comes
+from the *step between* tokens, not from fading text toward the background.
+Block fills target explicit contrast ratios rather than fixed mix ratios, so
+any hue lands at the same visual weight: a slate blue and a yellow recede by
+the same amount. Nothing is allowed to reach the page itself (the quietest
+combination, on-hold + not-my-team, still separates at 1.3:1), and every block
+border clears WCAG 1.4.11's 3:1 for non-text contrast so a receded block stays
+unambiguously present. Tests assert all of this across both ownership values,
+all three intensities, and adversarial imported colours including pure black
+and white.
+
 Weeks start **Monday** everywhere. A task spanning several weeks renders one
 segment per week row; cut edges lose their border and radius so they read as
 "continues" rather than "ends here", and only true end edges are resizable.
