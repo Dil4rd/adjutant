@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { enrolPasskey, hasRecipients, loadVault } from './lib/auth/vault'
+  import { enrolPasskey, hasRecipients, isUnopenable, loadVault } from './lib/auth/vault'
   import { addMonths, firstOfMonth, parseISO, todayISO } from './lib/roadmap/dates'
   import { buildExport, earliestStart, mergeById, parseImport } from './lib/roadmap/io'
   import { normalizeTask, seedTasks } from './lib/roadmap/model'
-  import { readData, writeData } from './lib/roadmap/storage'
+  import { clearData, readData, writeData } from './lib/roadmap/storage'
   import type { Meta, Task, ViewState } from './lib/roadmap/types'
 
   import Calendar from './components/Calendar.svelte'
@@ -15,7 +15,13 @@
   import Unlock from './components/Unlock.svelte'
 
   let dek = $state<CryptoKey | null>(null)
-  let lockMode = $state<'enrol' | 'unlock'>(hasRecipients(loadVault()) ? 'unlock' : 'enrol')
+  // A vault that exists but holds no passkey is NOT a first run: showing the
+  // enrolment screen there would mint a new key against undecryptable data and
+  // strand the user with no explanation. Route it to the unlock screen, which
+  // says what happened and offers a reset.
+  let lockMode = $state<'enrol' | 'unlock'>(
+    hasRecipients(loadVault()) || isUnopenable() ? 'unlock' : 'enrol',
+  )
 
   let meta = $state<Meta>({ version: 1, name: 'Roadmap', updatedAt: null })
   let tasks = $state<Task[]>([])
@@ -42,10 +48,16 @@
     try {
       loaded = await readData(key)
     } catch {
-      // A key that cannot read the stored blob is the wrong key; stay locked
-      // rather than silently presenting an empty roadmap.
-      alert('The stored roadmap could not be decrypted with that key.')
-      return
+      if (!fresh) {
+        // An existing key that cannot read the stored blob is the wrong key;
+        // stay locked rather than silently presenting an empty roadmap.
+        alert('The stored roadmap could not be decrypted with that key.')
+        return
+      }
+      // A brand-new passkey can never decrypt a blob written under an older
+      // one — that data is already unrecoverable, so drop it and start clean
+      // rather than dead-ending on an error.
+      clearData()
     }
     dek = key
     if (loaded && Array.isArray(loaded.tasks)) {

@@ -40,13 +40,15 @@ here is the dataset itself, which grows, so this uses **envelope encryption**:
 
 ```
 passkey PRF output ──HKDF(info: adjutant/kek/v1)──► KEK ──unwraps──► DEK ──AES-GCM──► roadmap
-passphrase ────────PBKDF2-SHA256, 600k iters──────► KEK ──unwraps──► DEK
 ```
 
 - One random 256-bit **DEK** encrypts the roadmap.
-- Every *recipient* — each passkey, plus an optional passphrase — wraps its own
-  copy of that 32-byte DEK. Any recipient unlocks; losing one is a non-event,
-  and **+ Backup key** enrolls another without re-encrypting any data.
+- Every enrolled **passkey** wraps its own copy of that 32-byte DEK. Any passkey
+  unlocks; losing one is a non-event, and **+ Backup key** enrolls another
+  without re-encrypting any data.
+- **Passkeys are the only way in.** There is no password and no passphrase
+  fallback, so there is nothing to phish, guess, or brute-force — and nothing
+  weaker than the authenticator sitting beside the strong path.
 - The DEK exists only in memory for the session. **Lock** drops it.
 - `localStorage` holds two keys, neither readable without unlocking:
   `adjutant:vault:v1` (wrapped DEKs) and `adjutant:data:v1` (AES-GCM ciphertext).
@@ -58,10 +60,16 @@ passphrase ────────PBKDF2-SHA256, 600k iters──────�
 `frame-ancestors` is deliberately **not** in the `<meta>` CSP: browsers ignore it
 there. Clickjacking protection comes from a real header — see `deploy/nginx.conf`.
 
-Passkeys need a secure context: serve over `https://` or `localhost`. The
-passphrase path is the fallback for browsers or authenticators without PRF.
-There is no recovery if every recipient is lost — that is the design. Enrol a
-backup key, and treat Export JSON as the real backup.
+Passkeys need a secure context: serve over `https://` or `localhost`; a
+`file://` path will not do. The authenticator must support the **PRF
+extension** — current Chrome, Safari, Edge and the major password managers do;
+a very old security key may not, and the app will say so rather than fail
+obscurely.
+
+There is no recovery if every passkey is lost — that is the design, not an
+oversight. **Enrol a second passkey from "+ Backup key" on day one**, and treat
+Export JSON as the real backup. A vault left with no usable passkey is detected
+on load and offered a clean reset instead of a dead end.
 
 ## Visual encoding
 
@@ -132,6 +140,8 @@ Legacy aliases (`title`, `start`, `end`, `team`, `notes`, `owner`) still load.
 
 ```
 src/lib/auth/        webauthn.ts (PRF oracle) · vault.ts (envelope) · store.ts
+                     — the ceremony is split from the crypto, so the whole
+                     envelope is unit-testable without an authenticator
 src/lib/roadmap/     types · dates · colors · model · layout · io · storage
 src/components/      Unlock · Toolbar · Filters · Calendar · MonthPanel ·
                      TaskBlock · EditModal · ImportModal · Legend
@@ -141,7 +151,10 @@ build/csp-plugin.ts  hashes the inlined bundle, emits the strict CSP
 
 The domain layer is deliberately DOM-free, which is why the dates, colours,
 layout packing, import/export and the whole crypto envelope are unit-testable
-without a browser.
+without a browser. The WebAuthn ceremony on top is covered end to end against
+Chromium's virtual authenticator with PRF enabled — including enrolling a
+backup passkey, destroying the original credential, and confirming the backup
+still opens the vault.
 
 ## Notes on the supplied roadmap
 
