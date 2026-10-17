@@ -142,6 +142,17 @@ header.bar button { font-size: 0.78rem; }
   display: grid; gap: 0.7rem; align-content: start;
 }
 .month { min-width: 0; }
+.empty {
+  grid-column: 1 / -1;
+  margin: 0 0 0.2rem;
+  padding: 0.9rem;
+  text-align: center;
+  color: var(--dim);
+  font-size: 0.8rem;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+.empty strong { color: var(--muted); font-weight: 600; }
 .month h2 {
   margin: 0 0 0.35rem; padding: 0 0.1rem;
   font-size: 0.7rem; font-weight: 600;

@@ -1,26 +1,11 @@
+import { sampleTasks } from './fixtures'
 import { describe, expect, it } from 'vitest'
 import { buildExport, earliestStart, mergeById, parseImport } from '../src/lib/roadmap/io'
-import { seedTasks } from '../src/lib/roadmap/model'
 import type { Meta } from '../src/lib/roadmap/types'
 
 const META: Meta = { version: 1, name: 'Roadmap', updatedAt: null }
 
-const SPEC_ARRAY = [
-  {
-    id: 'sample-01a', project: 'Example Programme',
-    stage: 'Stage 1: Baseline & Testing', executor: 'Core Team',
-    startDate: '2026-10-19', endDate: '2026-10-28', status: 'intensive',
-    isMyTeam: true, color: '#8b5cf6',
-    comments: 'Establish the baseline, run internal testing, and scope the wider pilot group.',
-  },
-  {
-    id: 'sample-01b', project: 'Example Programme',
-    stage: 'Stage 1: Policy & Testing Support', executor: 'Partner Team',
-    startDate: '2026-10-19', endDate: '2026-10-28', status: 'background',
-    isMyTeam: false, color: '#64748b',
-    comments: 'Answer technical queries, draft policies, and assist with testing.',
-  },
-]
+const SPEC_ARRAY = sampleTasks().slice(0, 2)
 
 describe('import', () => {
   it('accepts a current-format array verbatim', () => {
@@ -38,7 +23,7 @@ describe('import', () => {
   })
 
   it('accepts an export envelope', () => {
-    const env = buildExport(META, seedTasks())
+    const env = buildExport(META, sampleTasks())
     const back = parseImport(JSON.stringify(env))
     expect(back.tasks).toEqual(env.tasks)
     expect(back.name).toBe('Roadmap')
@@ -74,7 +59,7 @@ describe('import', () => {
 })
 
 describe('export', () => {
-  const tasks = seedTasks()
+  const tasks = sampleTasks()
   const env = buildExport(META, tasks)
 
   it('carries tasks and metadata', () => {
@@ -103,7 +88,7 @@ describe('export', () => {
 })
 
 describe('merge', () => {
-  const tasks = seedTasks()
+  const tasks = sampleTasks()
 
   it('overwrites by id and keeps the count', () => {
     const edited = { ...tasks[0], stage: 'Rewritten' }
@@ -125,6 +110,6 @@ describe('merge', () => {
 
 describe('viewport targeting', () => {
   it('finds the earliest start', () => {
-    expect(earliestStart(seedTasks())).toBe('2026-10-19')
+    expect(earliestStart(sampleTasks())).toBe('2026-10-19')
   })
 })

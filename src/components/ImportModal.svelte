@@ -36,7 +36,7 @@
         id="importText"
         style="min-height:180px"
         bind:value={text}
-        placeholder={'[{"id":"sample-01a","project":"Example Programme","stage":"Stage 1: Baseline & Testing","executor":"Core Team","startDate":"2026-10-19","endDate":"2026-10-28","status":"active","isMyTeam":true,"color":"#8b5cf6","comments":"…"}]'}
+        placeholder={'[{"id":"s1","project":"Example Programme","stage":"Stage 1: Baseline & Testing","executor":"Core Team","startDate":"2026-10-19","endDate":"2026-10-28","status":"intensive","isMyTeam":true,"color":"#8b5cf6","comments":"…"}]'}
       ></textarea>
     </div>
 

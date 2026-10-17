@@ -1,5 +1,6 @@
 // Import / export, kept free of the DOM so it is directly testable.
 
+import { todayISO } from './dates'
 import { normalizeTask } from './model'
 import type { ExportEnvelope, Meta, Task } from './types'
 
@@ -55,5 +56,6 @@ export function mergeById(existing: Task[], incoming: Task[]): Task[] {
   return [...byId.values()]
 }
 
+/** Earliest start across the set; today's date when the set is empty. */
 export const earliestStart = (tasks: Task[]): string =>
-  tasks.reduce((m, t) => (t.startDate < m ? t.startDate : m), tasks[0].startDate)
+  tasks.length ? tasks.reduce((m, t) => (t.startDate < m ? t.startDate : m), tasks[0].startDate) : todayISO()

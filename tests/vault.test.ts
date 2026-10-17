@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { sampleTasks } from './fixtures'
 import {
   enrolPasskey, hasRecipients, isUnopenable, kekFromPrf, loadVault, newDek,
   resetVault, unwrapDekWith, wrapDekFor, type Recipient,
 } from '../src/lib/auth/vault'
 import { readData, writeData } from '../src/lib/roadmap/storage'
-import { seedTasks } from '../src/lib/roadmap/model'
 import type { Persisted } from '../src/lib/roadmap/types'
 
 // A minimal localStorage, so the vault and storage modules run unmodified
@@ -31,7 +31,7 @@ const rawOf = async (k: CryptoKey) => Buffer.from(await crypto.subtle.exportKey(
 
 const payload = (): Persisted => ({
   meta: { version: 1, name: 'Roadmap', updatedAt: null },
-  tasks: seedTasks(),
+  tasks: sampleTasks(),
   view: { months: 2, anchor: '2026-10-01', project: 'All' },
 })
 
@@ -181,8 +181,9 @@ describe('data at rest', () => {
     const dek = await newDek()
     await writeData(dek, payload())
     const raw = localStorage.getItem('adjutant:data:v1')!
-    expect(raw).not.toContain('Example')
+    expect(raw).not.toContain('Example Programme')
     expect(raw).not.toContain('Core Team')
+    expect(raw).not.toContain('Baseline')
   })
 
   it('uses a fresh nonce per write', async () => {

@@ -6,11 +6,14 @@
   let {
     tasks,
     view,
+    isEmpty,
     onEdit,
     onCommit,
   }: {
     tasks: Task[]
     view: ViewState
+    /** The whole dataset is empty — distinct from a filter hiding everything. */
+    isEmpty: boolean
     onEdit: (t: Task) => void
     onCommit: () => void
   } = $props()
@@ -138,6 +141,12 @@
   onpointerup={endDrag}
   onpointercancel={endDrag}
 >
+  {#if isEmpty}
+    <p class="empty">
+      No tasks yet — add one with <strong>+ New Task</strong>, or load a roadmap with
+      <strong>Import JSON</strong>.
+    </p>
+  {/if}
   {#each panels as p (p.key)}
     <MonthPanel
       year={p.year}

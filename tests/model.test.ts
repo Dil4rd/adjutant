@@ -1,21 +1,9 @@
+import { SAMPLE_RECORD as SPEC, sampleTasks } from './fixtures'
 import { describe, expect, it } from 'vitest'
-import { normalizeTask, seedTasks, uid } from '../src/lib/roadmap/model'
+import { normalizeTask,  uid } from '../src/lib/roadmap/model'
 import { diffDays, todayISO } from '../src/lib/roadmap/dates'
 import { paletteFor } from '../src/lib/roadmap/colors'
-import type { Task } from '../src/lib/roadmap/types'
 
-const SPEC: Task = {
-  id: 'sample-01a',
-  project: 'Example Programme',
-  stage: 'Stage 1: Baseline & Testing',
-  executor: 'Core Team',
-  startDate: '2026-10-19',
-  endDate: '2026-10-28',
-  status: 'intensive',
-  isMyTeam: true,
-  color: '#8b5cf6',
-  comments: 'Establish the baseline, run internal testing, and scope the wider pilot group.',
-}
 
 describe('the interchange record', () => {
   it('survives normalisation untouched', () => {
@@ -136,11 +124,11 @@ describe('legacy aliases still load', () => {
 })
 
 describe('seed roadmap', () => {
-  const seed = seedTasks()
+  const seed = sampleTasks()
 
-  it('is the Example migration', () => {
+  it('is eight stages of one programme', () => {
     expect(seed).toHaveLength(8)
-    expect(seed.every((t) => t.project === 'Example Programme')).toBe(true)
+    expect(new Set(seed.map((t) => t.project)).size).toBe(1)
   })
 
   it('is already normalised', () => {

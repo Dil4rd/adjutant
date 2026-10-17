@@ -2,7 +2,7 @@
   import { enrolPasskey, hasRecipients, isUnopenable, loadVault } from './lib/auth/vault'
   import { addMonths, firstOfMonth, parseISO, todayISO } from './lib/roadmap/dates'
   import { buildExport, earliestStart, mergeById, parseImport } from './lib/roadmap/io'
-  import { normalizeTask, seedTasks } from './lib/roadmap/model'
+  import { normalizeTask } from './lib/roadmap/model'
   import { clearData, readData, writeData } from './lib/roadmap/storage'
   import type { Meta, Task, ViewState } from './lib/roadmap/types'
 
@@ -67,8 +67,10 @@
       if (!view.anchor) view.anchor = firstOfMonth(new Date())
       saveState = 'encrypted · local only'
     } else {
-      tasks = seedTasks()
-      view.anchor = firstOfMonth(parseISO(earliestStart(tasks)))
+      // Nothing stored and nothing predefined: start on an empty board at the
+      // current month, and let the user add or import their own work.
+      tasks = []
+      view.anchor = firstOfMonth(new Date())
     }
     if (fresh || !loaded) await save()
   }
@@ -235,7 +237,13 @@
       }}
     />
 
-    <Calendar tasks={visible} {view} onEdit={(t) => (editing = { task: t })} onCommit={scheduleSave} />
+    <Calendar
+      tasks={visible}
+      {view}
+      isEmpty={tasks.length === 0}
+      onEdit={(t) => (editing = { task: t })}
+      onCommit={scheduleSave}
+    />
 
     <Legend {saveState} />
   </div>

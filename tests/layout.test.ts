@@ -1,7 +1,7 @@
+import { sampleTasks } from './fixtures'
 import { describe, expect, it } from 'vitest'
 import { layoutWeek } from '../src/lib/roadmap/layout'
 import { normalizeTask } from '../src/lib/roadmap/model'
-import { seedTasks } from '../src/lib/roadmap/model'
 import { monthWeeks, iso } from '../src/lib/roadmap/dates'
 import type { Task } from '../src/lib/roadmap/types'
 
@@ -104,7 +104,7 @@ describe('lane packing', () => {
 
 describe('whole-month coverage', () => {
   it('renders every seeded task somewhere across its months', () => {
-    const seed = seedTasks()
+    const seed = sampleTasks()
     const seen = new Set<string>()
     for (const [y, m] of [[2026, 9], [2026, 10], [2026, 11], [2027, 0], [2027, 1]] as const) {
       for (const week of monthWeeks(y, m)) {

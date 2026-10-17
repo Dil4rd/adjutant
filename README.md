@@ -157,13 +157,13 @@ step with an imported file.
 ```json
 [
   {
-    "id": "sample-01a",
+    "id": "s1",
     "project": "Example Programme",
     "stage": "Stage 1: Baseline & Testing",
     "executor": "Core Team",
     "startDate": "2026-10-19",
     "endDate": "2026-10-28",
-    "status": "active",
+    "status": "intensive",
     "isMyTeam": true,
     "color": "#8b5cf6",
     "comments": "Establish the baseline, run internal testing, and scope the wider pilot group."
@@ -217,14 +217,10 @@ Chromium's virtual authenticator with PRF enabled — including enrolling a
 backup passkey, destroying the original credential, and confirming the backup
 still opens the vault.
 
-## Notes on the supplied roadmap
+## No predefined projects
 
-`seedTasks()` holds the Example Programme roadmap, so a fresh browser opens
-on real data.
-
-The three stages whose `comments` say *"low-intensity"* — Stage 2b, 3b and 4b,
-the oversight halves — are tagged `background`; the delivery stages they shadow
-are `intensive`. That distinction was only ever in the prose until there was a
-status that could carry it, and it is why the oversight tracks now visibly
-recede behind the work they shadow. Change them back in `seedTasks()` if you
-would rather they all read the same.
+The app ships with **no sample data**: a freshly unlocked vault opens on an
+empty board at the current month, with a prompt to add a task or import a
+roadmap. Nothing about any real project, person or vendor lives in this
+repository — the eight-stage programme the tests exercise is generic content in
+`tests/fixtures.ts`, which never reaches the bundle.
