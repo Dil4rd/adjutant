@@ -57,8 +57,16 @@ passkey PRF output ──HKDF(info: adjutant/kek/v1)──► KEK ──unwraps�
   nothing, it also runs `default-src 'none'; connect-src 'none'` — there is no
   origin to exfiltrate to even if it did.
 
-`frame-ancestors` is deliberately **not** in the `<meta>` CSP: browsers ignore it
-there. Clickjacking protection comes from a real header — see `deploy/nginx.conf`.
+`frame-ancestors` is deliberately **not** in the `<meta>` CSP: browsers ignore
+it there. Clickjacking protection comes from real headers, set in `vercel.json`
+for the hosted deploy and `deploy/nginx.conf` for the container. Multiple CSP
+policies intersect, so the header adds framing protection without loosening the
+meta policy.
+
+`vercel.json` also pins a `Permissions-Policy` that **explicitly keeps
+`publickey-credentials-create` and `publickey-credentials-get` available to this
+origin**. That is the browser default, stated so it cannot be lost by accident —
+dropping those two entries would break unlocking entirely.
 
 Passkeys need a secure context: serve over `https://` or `localhost`; a
 `file://` path will not do. The authenticator must support the **PRF
@@ -70,6 +78,35 @@ There is no recovery if every passkey is lost — that is the design, not an
 oversight. **Enrol a second passkey from "+ Backup key" on day one**, and treat
 Export JSON as the real backup. A vault left with no usable passkey is detected
 on load and offered a clean reset instead of a dead end.
+
+## Deployments
+
+| Branch | URL | Notes |
+|---|---|---|
+| `main` | https://adjutant.dil4rd.me | Vercel builds `npm run build` and serves `dist/` |
+| `dev` | https://adjutant-dev.dil4rd.me | same build, for work in progress |
+
+**Passkeys are scoped to the hostname.** WebAuthn binds every credential to an
+RP ID, which is the origin's host — so a passkey enrolled on
+`adjutant.dil4rd.me` cannot unlock `adjutant-dev.dil4rd.me`, or vice versa, and
+each origin keeps its own `localStorage` vault. That is a property of WebAuthn,
+not a setting: treat the two as separate installs, enrol a passkey on each, and
+move roadmaps between them with Export / Import JSON.
+
+The same applies to `localhost` during development: a third origin, a third
+vault.
+
+## Dependency advisories
+
+The shipped artifact has **zero runtime dependencies** — it is one static HTML
+file — so advisories here only ever concern the build machine and CI.
+
+`braces`/`micromatch` (reached via `vite-plugin-singlefile`) carries a
+stack-exhaustion DoS advisory with **no patched version available**: `braces` is
+already at its latest, 3.0.3. `npm audit fix --force` "resolves" it by
+downgrading `vite-plugin-singlefile` from 2.x to 0.9.0, which would break the
+single-file build outright, so it is deliberately not applied. The only input
+reaching those globs is this repo's own Vite config.
 
 ## Visual encoding
 
