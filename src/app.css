@@ -1,0 +1,271 @@
+:root {
+  --bg: #0d1117;
+  --panel: #151b23;
+  --panel-2: #1b222c;
+  --fg: #e6edf3;
+  --muted: #8b949e;
+  --accent: #3b82f6;
+  --border: #2a323d;
+  --danger: #f87171;
+  --lane-h: 34px;
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 14px;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--fg);
+  padding: 0.4rem 0.75rem;
+  border-radius: 7px;
+}
+button:hover:not(:disabled) { background: #222b36; }
+button:disabled { opacity: 0.45; cursor: default; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.primary:hover:not(:disabled) { background: #2f6fd8; }
+button.danger { background: transparent; border-color: #5b2b2b; color: var(--danger); }
+button.danger:hover:not(:disabled) { background: #2a1818; }
+button.ghost { background: transparent; }
+button.link {
+  background: none; border: none; color: var(--muted);
+  text-decoration: underline; padding: 0.3rem;
+}
+button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+input, select, textarea {
+  font: inherit;
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: #0b0f14;
+  color: var(--fg);
+}
+textarea { resize: vertical; min-height: 68px; }
+label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 0.25rem; }
+.error { color: #ff9c8f; font-size: 0.85rem; min-height: 1.1rem; }
+.hint { color: var(--muted); font-size: 0.8rem; line-height: 1.5; }
+.hidden { display: none !important; }
+
+/* ---------- lock screen ---------- */
+#lock {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 2rem 1rem;
+}
+.lock-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.75rem;
+}
+.lock-card h1 { margin: 0 0 0.25rem; font-size: 1.3rem; letter-spacing: -0.01em; }
+.lock-card .sub { color: var(--muted); font-size: 0.85rem; margin: 0 0 1.25rem; }
+.lock-card .row { display: flex; gap: 0.5rem; margin-top: 1rem; }
+.lock-card .row > button { flex: 1; }
+.lock-sep {
+  display: flex; align-items: center; gap: 0.6rem;
+  color: var(--muted); font-size: 0.72rem; text-transform: uppercase;
+  letter-spacing: 0.08em; margin: 1.25rem 0 0.75rem;
+}
+.lock-sep::before, .lock-sep::after {
+  content: ""; flex: 1; height: 1px; background: var(--border);
+}
+.field { margin-top: 0.85rem; }
+
+/* ---------- app chrome ---------- */
+#app { height: 100%; }
+.shell { display: flex; flex-direction: column; height: 100%; }
+header.bar {
+  display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+.brand { font-weight: 650; letter-spacing: -0.01em; margin-right: 0.3rem; }
+.brand span { color: var(--muted); font-weight: 400; font-size: 0.8rem; }
+.group { display: flex; gap: 0.25rem; align-items: center; }
+.group.boxed {
+  border: 1px solid var(--border); border-radius: 8px; padding: 2px; gap: 2px;
+}
+.group.boxed button { border: none; background: transparent; padding: 0.3rem 0.6rem; }
+.group.boxed button.on { background: var(--accent); color: #fff; }
+.spacer { flex: 1; }
+.range { color: var(--muted); font-size: 0.82rem; white-space: nowrap; }
+
+.filters {
+  display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center;
+  padding: 0.5rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel-2);
+}
+.filters .label {
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--muted); margin-right: 0.3rem;
+}
+.filters button { padding: 0.25rem 0.6rem; font-size: 0.82rem; border-radius: 999px; }
+
+/* ---------- calendar ---------- */
+#months {
+  flex: 1; overflow: auto; padding: 0.9rem;
+  display: grid; gap: 0.9rem;
+  align-content: start;
+}
+.month {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  min-width: 0;
+}
+.month h2 {
+  margin: 0; padding: 0.55rem 0.8rem; font-size: 0.95rem; font-weight: 600;
+  border-bottom: 1px solid var(--border); background: var(--panel-2);
+}
+.dow {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  border-bottom: 1px solid var(--border);
+}
+.dow div {
+  padding: 0.3rem 0.4rem; font-size: 0.7rem; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.05em; text-align: center;
+}
+.dow div.we { color: #6b7280; }
+.week { position: relative; border-bottom: 1px solid var(--border); }
+.week:last-child { border-bottom: none; }
+.week-days { display: grid; grid-template-columns: repeat(7, 1fr); }
+.day {
+  border-right: 1px solid var(--border);
+  padding: 0.2rem 0.35rem;
+  font-size: 0.72rem; color: var(--muted);
+  min-height: 1.3rem;
+}
+.day:last-child { border-right: none; }
+.day.out { color: #4b5563; background: rgba(0,0,0,0.18); }
+.day.we { background: rgba(255,255,255,0.03); }
+.day.today { color: #fff; }
+.day.today .n {
+  background: var(--accent); color: #fff; border-radius: 999px;
+  padding: 0 5px; font-weight: 600;
+}
+.week-blocks { position: relative; }
+.week.drop .week-blocks { background: rgba(59,130,246,0.06); }
+
+/* ---------- task blocks ---------- */
+.block {
+  position: absolute;
+  border-radius: 7px;
+  border-width: 1.5px;
+  border-style: solid;
+  padding: 2px 7px;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  line-height: 1.22;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+.block:hover { filter: brightness(1.12); }
+.block .t1 {
+  font-size: 0.74rem; font-weight: 650;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.block .t2 {
+  font-size: 0.68rem; opacity: 0.88;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.block.clip-s { border-top-left-radius: 0; border-bottom-left-radius: 0; border-left-style: none; }
+.block.clip-e { border-top-right-radius: 0; border-bottom-right-radius: 0; border-right-style: none; }
+
+/* State encoding: border style + background pattern. Deliberately NOT scoped
+   to .block, so the legend swatches render the very same treatment. */
+.s-active { border-style: solid; }
+.s-intensive {
+  border-style: dashed;
+  background-image: repeating-linear-gradient(
+    45deg, rgba(255,255,255,0.26) 0 5px, rgba(255,255,255,0) 5px 10px);
+}
+.s-hold {
+  border-style: dotted;
+  background-image: radial-gradient(rgba(255,255,255,0.22) 1px, transparent 1.3px);
+  background-size: 6px 6px;
+}
+/* On-hold reads as "receded" via a dimmer fill rather than element opacity,
+   which would drag the label down with it. */
+.block.s-hold .t1, .block.s-hold .t2 { opacity: 0.9; }
+.handle {
+  position: absolute; top: 0; bottom: 0; width: 8px;
+  cursor: ew-resize; z-index: 2;
+}
+.handle.l { left: -1px; }
+.handle.r { right: -1px; }
+.block.clip-s .handle.l, .block.clip-e .handle.r { display: none; }
+.dragging .block { pointer-events: none; }
+.dragging { cursor: grabbing; }
+.block.active-drag { box-shadow: 0 6px 18px rgba(0,0,0,0.5); z-index: 5; filter: brightness(1.18); }
+
+/* ---------- legend ---------- */
+.legend {
+  display: flex; gap: 1.25rem; flex-wrap: wrap; align-items: center;
+  padding: 0.5rem 0.9rem;
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+  font-size: 0.76rem; color: var(--muted);
+}
+.legend .set { display: flex; gap: 0.7rem; align-items: center; flex-wrap: wrap; }
+.legend .set > strong {
+  font-weight: 600; color: var(--fg); font-size: 0.7rem;
+  text-transform: uppercase; letter-spacing: 0.07em;
+}
+.legend .item { display: flex; gap: 0.35rem; align-items: center; }
+.swatch {
+  width: 34px; height: 17px; border-radius: 4px;
+  border-width: 1.5px;
+  /* no border-style here: the .s-* classes own it, and this rule sits later in
+     the sheet, so declaring it would win on source order and flatten them all */
+}
+.dot { width: 11px; height: 11px; border-radius: 3px; }
+
+/* ---------- modals ---------- */
+.overlay {
+  position: fixed; inset: 0; background: rgba(2,5,10,0.72);
+  display: grid; place-items: center; padding: 1rem; z-index: 50;
+  overflow: auto;
+}
+.sheet {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 14px; width: 100%; max-width: 560px; padding: 1.25rem;
+}
+.sheet h3 { margin: 0 0 1rem; font-size: 1.05rem; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.sheet .field { margin-top: 0.75rem; }
+.actions {
+  display: flex; gap: 0.5rem; margin-top: 1.25rem; align-items: center;
+}
+.actions .spacer { flex: 1; }
+.swatches { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+.swatches button {
+  width: 26px; height: 26px; border-radius: 6px; padding: 0;
+  border: 2px solid transparent;
+}
+.swatches button.on { border-color: #fff; }
+.seg { display: flex; gap: 2px; border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
+.seg button { flex: 1; border: none; background: transparent; padding: 0.35rem; }
+.seg button.on { background: var(--accent); color: #fff; }
+.drop-zone {
+  border: 1.5px dashed var(--border); border-radius: 10px;
+  padding: 0.9rem; text-align: center; color: var(--muted);
+  margin-top: 0.75rem;
+}
+.drop-zone.over { border-color: var(--accent); background: rgba(59,130,246,0.08); }
+@media (max-width: 620px) { .grid2 { grid-template-columns: 1fr; } }

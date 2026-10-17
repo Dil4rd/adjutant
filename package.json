@@ -1,0 +1,27 @@
+{
+  "name": "adjutant",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Self-contained project roadmap calendar, secured with passkey (WebAuthn PRF) encryption.",
+  "repository": { "type": "git", "url": "https://github.com/Dil4rd/adjutant.git" },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.node.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^5.0.0",
+    "@tsconfig/svelte": "^5.0.0",
+    "@types/node": "^22.20.0",
+    "svelte": "^5.0.0",
+    "svelte-check": "^4.0.0",
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0",
+    "vite-plugin-singlefile": "^2.1.0",
+    "vitest": "^3.0.0"
+  }
+}

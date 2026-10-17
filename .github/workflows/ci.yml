@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+      # The build is only correct if the CSP plugin actually locked the script.
+      - name: Assert the built artifact is self-contained and CSP-locked
+        run: |
+          test "$(grep -c '<script' dist/index.html)" = "1"
+          ! grep -q 'script src=' dist/index.html
+          grep -q "default-src 'none'" dist/index.html
+          grep -qE "script-src 'sha256-[A-Za-z0-9+/=]+'" dist/index.html

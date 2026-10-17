@@ -1,21 +1,46 @@
 # Adjutant — Project Roadmap Calendar
 
-A single-file, offline project roadmap calendar. Open `index.html` and that is
-the whole application: no build step, no dependencies, no network calls.
+An interactive, multi-month project roadmap calendar that builds to **one
+self-contained `index.html`** — no network calls, no backend, no dependencies at
+runtime. Your roadmap is encrypted in the browser under a key only your passkey
+can unwrap.
 
 Architecture follows [Dil4rd/hindsightly](https://github.com/Dil4rd/hindsightly):
 **WebAuthn PRF → HKDF → AES-GCM**, with no server and no signature verification.
 Security rests on the fact that only the authenticator holding the credential
 secret can reproduce the PRF output.
 
+## Stack
+
+Svelte 5 · Vite + vite-plugin-singlefile · TypeScript · Vitest.
+Native WebAuthn + WebCrypto, no auth dependency. Zero runtime dependencies.
+
+```bash
+npm install
+npm run dev      # dev server (localhost is a WebAuthn secure context)
+npm run check    # svelte-check + tsc
+npm test         # Vitest — the pure domain layer
+npm run build    # -> dist/index.html, self-contained and CSP-locked
+```
+
+Or build in a pinned environment and export just the artifact:
+
+```bash
+docker build --target artifact -o dist .     # -> ./dist/index.html
+docker build --target serve -t adjutant .    # or run it behind nginx
+docker run -p 8080:80 adjutant
+```
+
+Pushing a `v*` tag builds the file and attaches it to a GitHub Release.
+
 ## Security model
 
-Hindsightly encrypts a short Todoist token once per enrolled passkey. Here the
-secret *is* the dataset, which grows, so this uses **envelope encryption**:
+Hindsightly encrypts a short API token once per enrolled passkey. The secret
+here is the dataset itself, which grows, so this uses **envelope encryption**:
 
 ```
 passkey PRF output ──HKDF(info: adjutant/kek/v1)──► KEK ──unwraps──► DEK ──AES-GCM──► roadmap
-passphrase ────────PBKDF2-SHA256, 600k iters─────► KEK ──unwraps──► DEK
+passphrase ────────PBKDF2-SHA256, 600k iters──────► KEK ──unwraps──► DEK
 ```
 
 - One random 256-bit **DEK** encrypts the roadmap.
@@ -25,9 +50,18 @@ passphrase ────────PBKDF2-SHA256, 600k iters─────► K
 - The DEK exists only in memory for the session. **Lock** drops it.
 - `localStorage` holds two keys, neither readable without unlocking:
   `adjutant:vault:v1` (wrapped DEKs) and `adjutant:data:v1` (AES-GCM ciphertext).
+- The production build carries a strict CSP whose `script-src` is the SHA-256 of
+  the inlined bundle, so injected script cannot execute. Because the app talks to
+  nothing, it also runs `default-src 'none'; connect-src 'none'` — there is no
+  origin to exfiltrate to even if it did.
 
-Passkeys need a secure context — serve over `https://` or `localhost`. The
+`frame-ancestors` is deliberately **not** in the `<meta>` CSP: browsers ignore it
+there. Clickjacking protection comes from a real header — see `deploy/nginx.conf`.
+
+Passkeys need a secure context: serve over `https://` or `localhost`. The
 passphrase path is the fallback for browsers or authenticators without PRF.
+There is no recovery if every recipient is lost — that is the design. Enrol a
+backup key, and treat Export JSON as the real backup.
 
 ## Visual encoding
 
@@ -36,12 +70,12 @@ passphrase path is the fallback for browsers or authenticators without PRF.
 | **Active** | solid border |
 | **Intensive / crunch** | dashed border + diagonal stripes |
 | **On-hold / blocked** | dotted border + dot pattern, dimmed fill |
-| **Internal / core team** | vibrant hues |
-| **External / contractor / client** | grey ramp (chosen hue is desaturated at render time, and restored if the task flips back to Internal) |
+| **Internal / my team** | vibrant hues |
+| **External / contractor / client** | grey tones |
 
 Weeks start **Monday** everywhere. A task spanning several weeks renders one
 segment per week row; cut edges lose their border and radius so they read as
-"continues" rather than "ends here", and only the true end edges are resizable.
+"continues" rather than "ends here", and only true end edges are resizable.
 
 ## Interaction
 
@@ -54,9 +88,9 @@ segment per week row; cut edges lose their border and radius so they read as
 
 ## Data format
 
-The field names below are the canonical ones: they are what the app stores in
-memory, encrypts to disk, and writes on export, so there is no translation
-layer that can drift out of step with the interchange format.
+These field names are canonical: they are what the app holds in memory,
+encrypts to disk and writes on export, so no translation layer can drift out of
+step with an imported file.
 
 ```json
 [
@@ -89,24 +123,31 @@ layer that can drift out of step with the interchange format.
 
 **Import** accepts a bare array of these objects, or an export envelope
 `{ version, app, exportedAt, meta, tasks }`, in replace or merge-by-id mode.
-Legacy aliases (`title`, `start`, `end`, `team`, `notes`, `owner`) still load,
-so older files and hand-written JSON keep working.
+Legacy aliases (`title`, `start`, `end`, `team`, `notes`, `owner`) still load.
 
-**Export** writes the envelope, because the brief asks for tasks *and*
-metadata — but every object inside `tasks` is exactly the shape above, and
-re-importing an export is a no-op. If you would rather the file be a bare
-array, that is a one-line change.
+**Export** writes the envelope — tasks *and* metadata — but every object inside
+`tasks` is exactly the shape above, and re-importing an export is a no-op.
+
+## Layout
+
+```
+src/lib/auth/        webauthn.ts (PRF oracle) · vault.ts (envelope) · store.ts
+src/lib/roadmap/     types · dates · colors · model · layout · io · storage
+src/components/      Unlock · Toolbar · Filters · Calendar · MonthPanel ·
+                     TaskBlock · EditModal · ImportModal · Legend
+tests/               Vitest over the pure layer (no DOM required)
+build/csp-plugin.ts  hashes the inlined bundle, emits the strict CSP
+```
+
+The domain layer is deliberately DOM-free, which is why the dates, colours,
+layout packing, import/export and the whole crypto envelope are unit-testable
+without a browser.
 
 ## Notes on the supplied roadmap
 
 `seedTasks()` holds the Example Programme roadmap, so a fresh browser opens
-on real data. Two things worth a look:
-
-- **Every stage is `"active"`.** The dashed/striped and dotted treatments
-  therefore never appear in this dataset, and the paired tracks render
-  identically to the delivery work they shadow.
-- The `comments` on four stages say *"low-intensity"* — Stage 2b, 3b and 4b
-  oversight, and the support halves generally. That is a real distinction in
-  intensity that `status` is the natural home for, and setting those to a
-  quieter state would make the oversight tracks visibly recede behind the
-  stages doing the work.
+on real data. Worth a look: **every stage is `"active"`**, so the dashed/striped
+and dotted treatments never appear in this dataset, and the paired oversight
+tracks render identically to the delivery work they shadow. The `comments` on
+four stages say *"low-intensity"* — a real distinction in intensity that
+`status` is the natural home for.
