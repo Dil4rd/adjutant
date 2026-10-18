@@ -4,6 +4,8 @@
 
   let {
     view,
+    from,
+    to,
     total,
     visible,
     onMonths,
@@ -14,8 +16,13 @@
     onImport,
     onBackupKey,
     onLock,
+    theme,
+    onToggleTheme,
   }: {
     view: ViewState
+    /** First and last month on screen, as offsets from view.anchor. */
+    from: number
+    to: number
     total: number
     visible: number
     onMonths: (n: 1 | 2 | 3) => void
@@ -26,16 +33,19 @@
     onImport: () => void
     onBackupKey: () => void
     onLock: () => void
+    theme: 'dark' | 'light'
+    onToggleTheme: () => void
   } = $props()
 
   const range = $derived.by(() => {
-    const a = parseISO(view.anchor)
-    const b = new Date(a.getFullYear(), a.getMonth() + view.months - 1, 1, 12)
+    const anchor = parseISO(view.anchor)
+    const a = new Date(anchor.getFullYear(), anchor.getMonth() + from, 1, 12)
+    const b = new Date(anchor.getFullYear(), anchor.getMonth() + to, 1, 12)
     const head =
       MONTHS[a.getMonth()].slice(0, 3) +
       ' ' +
       a.getFullYear() +
-      (view.months > 1 ? ' – ' + MONTHS[b.getMonth()].slice(0, 3) + ' ' + b.getFullYear() : '')
+      (to > from ? ' – ' + MONTHS[b.getMonth()].slice(0, 3) + ' ' + b.getFullYear() : '')
     const count = visible === total ? `${total} tasks` : `${visible} of ${total} tasks`
     return `${head}  ·  ${count}`
   })
@@ -60,6 +70,15 @@
   <button id="btnNew" class="primary" onclick={onNew}>+ New Task</button>
   <button id="btnExport" onclick={onExport}>Export JSON</button>
   <button id="btnImport" onclick={onImport}>Import JSON</button>
+  <button
+    id="btnTheme"
+    class="ghost"
+    aria-label={theme === 'dark' ? 'Switch to the light theme' : 'Switch to the dark theme'}
+    title={theme === 'dark' ? 'Switch to the light theme' : 'Switch to the dark theme'}
+    onclick={onToggleTheme}
+  >
+    {theme === 'dark' ? '☾' : '☀'}
+  </button>
   <button id="btnEnrolMore" class="ghost" title="Enrol a backup passkey" onclick={onBackupKey}>
     + Backup key
   </button>

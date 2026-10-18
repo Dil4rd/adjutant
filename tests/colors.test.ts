@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  PROJECT_COLORS, baseColor, blockSkin, contrastRatio, hexToRgb, luminance, mix, palette,
+  PROJECT_COLORS, SURFACES, baseColor, blockSkin, contrastRatio, hexToRgb, luminance, mix, palette,
 } from '../src/lib/roadmap/colors'
 import { STATUSES, type Status } from '../src/lib/roadmap/types'
 
@@ -147,5 +147,78 @@ describe('block skin', () => {
     expect(blockSkin({ color: '#eab308', isMyTeam: true, status: 'intensive' }, '#eab308').text).toBeTruthy()
     const dark = blockSkin({ color: '#14110f', isMyTeam: true, status: 'intensive' }, '#14110f')
     expect(dark.text).toBe('#f3ede7')
+  })
+})
+
+describe('both themes', () => {
+  const themes = ['dark', 'light'] as const
+  const combos = STATUSES.flatMap((status) =>
+    [true, false].map((isMyTeam) => ({ status, isMyTeam })),
+  )
+  const hues = [...PROJECT_COLORS, '#000000', '#ffffff']
+
+  it.each(themes)('%s: no block sinks into the page', (name) => {
+    const surface = SURFACES[name]
+    for (const hue of hues) {
+      for (const c of combos) {
+        const { fill } = blockSkin({ ...c, color: hue }, hue, surface)
+        expect(contrastRatio(fill, surface.page)).toBeGreaterThanOrEqual(1.29)
+      }
+    }
+  })
+
+  it.each(themes)('%s: every border clears 3:1 non-text contrast', (name) => {
+    const surface = SURFACES[name]
+    for (const hue of hues) {
+      for (const c of combos) {
+        const { border } = blockSkin({ ...c, color: hue }, hue, surface)
+        expect(contrastRatio(border, surface.page)).toBeGreaterThanOrEqual(3)
+      }
+    }
+  })
+
+  it.each(themes)('%s: label text stays readable on every fill', (name) => {
+    const surface = SURFACES[name]
+    for (const hue of hues) {
+      for (const c of combos) {
+        const { fill, text } = blockSkin({ ...c, color: hue }, hue, surface)
+        expect(contrastRatio(text, fill)).toBeGreaterThanOrEqual(4.5)
+      }
+    }
+  })
+
+  it.each(themes)('%s: ownership bands stay separated', (name) => {
+    const surface = SURFACES[name]
+    for (const hue of hues) {
+      const mine = STATUSES.map((status) =>
+        contrastRatio(blockSkin({ color: hue, isMyTeam: true, status }, hue, surface).fill, surface.page),
+      )
+      const theirs = STATUSES.map((status) =>
+        contrastRatio(blockSkin({ color: hue, isMyTeam: false, status }, hue, surface).fill, surface.page),
+      )
+      expect(Math.min(...mine)).toBeGreaterThan(Math.max(...theirs))
+    }
+  })
+
+  it.each(themes)('%s: intensity still steps loudest to quietest', (name) => {
+    const surface = SURFACES[name]
+    const c = (status: Status, isMyTeam: boolean) =>
+      contrastRatio(blockSkin({ color: '#3b82f6', isMyTeam, status }, '#3b82f6', surface).fill, surface.page)
+    for (const mine of [true, false]) {
+      expect(c('intensive', mine)).toBeGreaterThan(c('background', mine))
+      expect(c('background', mine)).toBeGreaterThan(c('hold', mine))
+    }
+  })
+
+  it('picks opposite text colours for the same hue in each theme', () => {
+    const d = blockSkin({ color: '#3b82f6', isMyTeam: true, status: 'intensive' }, '#3b82f6', SURFACES.dark)
+    const l = blockSkin({ color: '#3b82f6', isMyTeam: true, status: 'intensive' }, '#3b82f6', SURFACES.light)
+    expect(d.text).not.toBe(l.text)
+  })
+
+  it('defaults to the dark surface when none is given', () => {
+    const a = blockSkin({ color: '#3b82f6', isMyTeam: true, status: 'intensive' }, '#3b82f6')
+    const b = blockSkin({ color: '#3b82f6', isMyTeam: true, status: 'intensive' }, '#3b82f6', SURFACES.dark)
+    expect(a).toEqual(b)
   })
 })

@@ -1,22 +1,62 @@
-/* Warm near-black chrome, after hindsightly's palette. */
+/* Warm near-black chrome, after hindsightly's palette.
+   Every text token clears WCAG AA (4.5:1) against --bg in BOTH themes,
+   including the quietest one: de-emphasis is carried by the step between
+   tokens, not by pushing the bottom of the scale into the background. */
 :root {
   --bg: #14110f;
   --panel: #1a1714;
   --panel-2: #201b17;
-  /* Every text token clears WCAG AA (4.5:1) against --bg, including the
-     quietest one. De-emphasis is carried by the STEP between them, not by
-     pushing the bottom of the scale into the background. */
   --fg: #f3ede7;        /* 16.2:1 */
   --muted: #a89c90;     /*  7.0:1 */
   --dim: #8a7f75;       /*  4.8:1 */
-  --accent: #e44332;
+  --accent: #e44332;    /* highlights, underlines, focus */
+  --accent-fill: #d13a29; /* filled buttons: white on this is 4.8:1 */
   --border: #2e2823;
   --hair: rgba(243, 237, 231, 0.07);
+  --hover: rgba(243, 237, 231, 0.06);
+  --input-bg: #100d0b;
+  --input-focus: #4a4038;
+  --overlay: rgba(10, 8, 7, 0.78);
+  --weekend: rgba(0, 0, 0, 0.16);
+  --daygrid: rgba(243, 237, 231, 0.035);
+  --tex-line: rgba(255, 255, 255, 0.055);
+  --tex-dot: rgba(255, 255, 255, 0.14);
+  --tex-line-key: rgba(255, 255, 255, 0.22);
+  --tex-dot-key: rgba(255, 255, 255, 0.3);
+  --danger-border: #51251f;
+  --danger-fg: #f08b7d;
   --radius: 8px;
   color-scheme: dark;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-synthesis-weight: none;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Same ladder, inverted. Solved against the light page the same way. */
+:root[data-theme='light'] {
+  --bg: #faf7f3;
+  --panel: #ffffff;
+  --panel-2: #f4efe8;
+  --fg: #1b1714;        /* 16.7:1 */
+  --muted: #5c534c;     /*  7.0:1 */
+  --dim: #776c62;       /*  4.8:1 */
+  --accent: #c0392b;    /* 5.1:1 on the page, white on it is 5.4:1 */
+  --accent-fill: #c0392b;
+  --border: #e2d9cd;
+  --hair: rgba(27, 23, 20, 0.10);
+  --hover: rgba(27, 23, 20, 0.05);
+  --input-bg: #ffffff;
+  --input-focus: #b9ab9a;
+  --overlay: rgba(40, 33, 28, 0.42);
+  --weekend: rgba(27, 23, 20, 0.035);
+  --daygrid: rgba(27, 23, 20, 0.07);
+  --tex-line: rgba(0, 0, 0, 0.07);
+  --tex-dot: rgba(0, 0, 0, 0.16);
+  --tex-line-key: rgba(0, 0, 0, 0.26);
+  --tex-dot-key: rgba(0, 0, 0, 0.32);
+  --danger-border: #e0b4ac;
+  --danger-fg: #a3291a;
+  color-scheme: light;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
@@ -39,20 +79,20 @@ button {
   border-radius: 6px;
   transition: background 90ms ease, border-color 90ms ease, color 90ms ease;
 }
-button:hover:not(:disabled) { background: rgba(243, 237, 231, 0.06); }
+button:hover:not(:disabled) { background: var(--hover); }
 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 button:disabled { opacity: 0.4; cursor: default; }
-button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-button.primary:hover:not(:disabled) { background: #f0533f; border-color: #f0533f; }
-button.danger { border-color: #51251f; color: #f08b7d; }
-button.danger:hover:not(:disabled) { background: rgba(228, 67, 50, 0.1); }
+button.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
+button.primary:hover:not(:disabled) { filter: brightness(1.12); }
+button.danger { border-color: var(--danger-border); color: var(--danger-fg); }
+button.danger:hover:not(:disabled) { background: var(--hover); }
 button.ghost { border-color: transparent; color: var(--muted); }
 button.ghost:hover:not(:disabled) { color: var(--fg); }
 button.link {
   background: none; border: none; color: var(--muted);
   text-decoration: underline; padding: 0.2rem;
 }
-button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.on { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
 
 input, select, textarea {
   font: inherit;
@@ -60,10 +100,10 @@ input, select, textarea {
   padding: 0.4rem 0.55rem;
   border-radius: 6px;
   border: 1px solid var(--border);
-  background: #100d0b;
+  background: var(--input-bg);
   color: var(--fg);
 }
-input:focus, textarea:focus { outline: none; border-color: #4a4038; }
+input:focus, textarea:focus { outline: none; border-color: var(--input-focus); }
 textarea { resize: vertical; min-height: 62px; line-height: 1.5; }
 label {
   display: block;
@@ -73,7 +113,7 @@ label {
   text-transform: uppercase;
   letter-spacing: 0.07em;
 }
-.error { color: #f08b7d; font-size: 0.8rem; min-height: 1rem; }
+.error { color: var(--danger-fg); font-size: 0.8rem; min-height: 1rem; }
 .hint { color: var(--muted); font-size: 0.78rem; line-height: 1.6; }
 .hidden { display: none !important; }
 
@@ -115,13 +155,15 @@ header.bar {
 .group { display: flex; gap: 0.2rem; align-items: center; }
 .group.boxed { border: 1px solid var(--border); border-radius: 7px; padding: 1px; gap: 1px; }
 .group.boxed button { border: none; padding: 0.25rem 0.55rem; font-size: 0.78rem; border-radius: 6px; }
-.group.boxed button.on { background: var(--accent); color: #fff; }
+.group.boxed button.on { background: var(--accent-fill); color: #fff; }
 .spacer { flex: 1; }
 .range {
   color: var(--muted); font-size: 0.76rem; white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 header.bar button { font-size: 0.78rem; }
+/* the sun/moon glyph needs a little more room than a word does */
+#btnTheme { font-size: 0.95rem; line-height: 1; padding: 0.22rem 0.5rem; }
 
 .filters {
   display: flex; gap: 0.3rem; flex-wrap: wrap; align-items: center;
@@ -152,16 +194,23 @@ header.bar button { font-size: 0.78rem; }
 }
 .filters button.toggle.on { background: transparent; color: var(--fg); border-color: var(--border); }
 .filters button.toggle.on .box {
-  background: var(--accent); border-color: var(--accent);
+  background: var(--accent-fill); border-color: var(--accent-fill);
   box-shadow: inset 0 0 0 1.5px var(--panel);
 }
 .filters button.toggle:not(.on) { color: var(--dim); }
 
 /* ---------- calendar ---------- */
 #months {
-  flex: 1; overflow: auto; padding: 0.7rem;
-  display: grid; gap: 0.7rem; align-content: start;
+  flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0.7rem;
+  display: grid; gap: 0.7rem 0.9rem; align-content: start;
+  /* --cols is the month toggle: how many months sit side by side. The run
+     continues below, so later months are a scroll away rather than a click. */
+  grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr));
+  scroll-behavior: smooth;
+  overflow-anchor: none;
 }
+@media (max-width: 1100px) { #months { grid-template-columns: repeat(min(var(--cols, 2), 2), minmax(0, 1fr)); } }
+@media (max-width: 720px) { #months { grid-template-columns: minmax(0, 1fr); } }
 .month { min-width: 0; }
 .empty {
   grid-column: 1 / -1;
@@ -198,13 +247,13 @@ header.bar button { font-size: 0.78rem; }
   font-size: 0.68rem; color: var(--muted);
   min-height: 1.1rem;
   font-variant-numeric: tabular-nums;
-  border-right: 1px solid rgba(243, 237, 231, 0.035);
+  border-right: 1px solid var(--daygrid);
 }
 .day:last-child { border-right: none; }
 /* Out-of-month days stay clearly secondary via the step down from --muted,
    not by fading out — the previous value was 1.55:1, i.e. invisible. */
 .day.out { color: var(--dim); }
-.day.we { background: rgba(0, 0, 0, 0.16); }
+.day.we { background: var(--weekend); }
 .day.today .n {
   color: var(--accent); font-weight: 700;
 }
@@ -213,7 +262,7 @@ header.bar button { font-size: 0.78rem; }
   background: var(--accent); border-radius: 1px;
 }
 .week-blocks { position: relative; }
-.week.drop .week-blocks { background: rgba(228, 67, 50, 0.05); }
+.week.drop .week-blocks { background: var(--hover); }
 
 /* ---------- task blocks ---------- */
 .block {
@@ -249,12 +298,12 @@ header.bar button { font-size: 0.78rem; }
 .s-intensive {
   border-style: solid;
   background-image: repeating-linear-gradient(
-    45deg, rgba(255, 255, 255, 0.055) 0 5px, rgba(255, 255, 255, 0) 5px 12px);
+    45deg, var(--tex-line) 0 5px, transparent 5px 12px);
 }
 .s-background { border-style: dashed; }
 .s-hold {
   border-style: dotted;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1.2px);
+  background-image: radial-gradient(var(--tex-dot) 1px, transparent 1.2px);
   background-size: 5px 5px;
 }
 .block.s-background .t1, .block.s-hold .t1 { font-weight: 500; }
@@ -265,7 +314,7 @@ header.bar button { font-size: 0.78rem; }
 .block.clip-s .handle.l, .block.clip-e .handle.r { display: none; }
 .dragging .block { pointer-events: none; }
 .dragging { cursor: grabbing; }
-.block.active-drag { box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55); z-index: 5; filter: brightness(1.2); }
+.block.active-drag { box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); z-index: 5; filter: brightness(1.2); }
 
 /* ---------- legend ---------- */
 .legend {
@@ -285,10 +334,10 @@ header.bar button { font-size: 0.78rem; }
    at the strength they would have if you leaned in */
 .swatch.s-intensive {
   background-image: repeating-linear-gradient(
-    45deg, rgba(255, 255, 255, 0.22) 0 3px, rgba(255, 255, 255, 0) 3px 7px);
+    45deg, var(--tex-line-key) 0 3px, transparent 3px 7px);
 }
 .swatch.s-hold {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.3) 1px, transparent 1.2px);
+  background-image: radial-gradient(var(--tex-dot-key) 1px, transparent 1.2px);
   background-size: 4px 4px;
 }
 .dot { width: 9px; height: 9px; border-radius: 2px; }
@@ -296,7 +345,7 @@ header.bar button { font-size: 0.78rem; }
 
 /* ---------- modals ---------- */
 .overlay {
-  position: fixed; inset: 0; background: rgba(10, 8, 7, 0.78);
+  position: fixed; inset: 0; background: var(--overlay);
   display: grid; place-items: center; padding: 1rem; z-index: 50; overflow: auto;
   backdrop-filter: blur(2px);
 }

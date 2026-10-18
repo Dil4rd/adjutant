@@ -1,6 +1,7 @@
 <script lang="ts">
   import { DOW, MONTHS, iso, monthWeeks, todayISO } from '../lib/roadmap/dates'
   import { layoutWeek } from '../lib/roadmap/layout'
+  import type { Surface } from '../lib/roadmap/colors'
   import type { Task } from '../lib/roadmap/types'
   import TaskBlock from './TaskBlock.svelte'
 
@@ -9,6 +10,7 @@
     month,
     tasks,
     hues,
+    surface,
     showProject,
     laneH,
     blockH,
@@ -18,6 +20,7 @@
     month: number
     tasks: Task[]
     hues: Map<string, string>
+    surface: Surface
     showProject: boolean
     laneH: number
     blockH: number
@@ -63,7 +66,7 @@
         style="height:{week.layout.laneCount ? week.layout.laneCount * laneH + lanePad : 6}px"
       >
         {#each week.layout.segs as seg (seg.task.id)}
-          <TaskBlock {seg} hue={hues.get(seg.task.project)} {showProject} {laneH} {blockH} {lanePad} />
+          <TaskBlock {seg} hue={hues.get(seg.task.project)} {surface} {showProject} {laneH} {blockH} {lanePad} />
         {/each}
       </div>
     </div>

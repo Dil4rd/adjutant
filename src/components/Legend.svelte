@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { blockSkin } from '../lib/roadmap/colors'
-  let { saveState = '' }: { saveState?: string } = $props()
+  import { blockSkin, type Surface } from '../lib/roadmap/colors'
+  let { saveState = '', surface }: { saveState?: string; surface: Surface } = $props()
 
   // Built from the real skin function, so the legend cannot drift from what
   // the board actually draws.
   const HUE = '#3b82f6'
   const demo = (status: 'intensive' | 'background' | 'hold', isMyTeam: boolean) =>
-    blockSkin({ color: HUE, status, isMyTeam }, HUE)
+    blockSkin({ color: HUE, status, isMyTeam }, HUE, surface)
   const styleOf = (s: ReturnType<typeof blockSkin>) =>
     `background-color:${s.fill};border-color:${s.border}`
 </script>

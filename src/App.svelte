@@ -5,6 +5,9 @@
   import { normalizeTask, projectHues } from './lib/roadmap/model'
   import { clearData, readData, writeData } from './lib/roadmap/storage'
   import type { Meta, Task, ViewState } from './lib/roadmap/types'
+  import {
+    applyTheme, resolveTheme, storePref, storedPref, surfaceOf, systemTheme, type ThemePref,
+  } from './lib/theme'
 
   import Calendar from './components/Calendar.svelte'
   import EditModal from './components/EditModal.svelte'
@@ -31,6 +34,41 @@
     project: 'All',
     showOtherTeams: true,
   })
+
+  // How many months are laid out below the anchor. Not persisted: it is a
+  // scroll position, not a preference, and it regrows on demand.
+  const ROWS_AHEAD = 3
+  // A year ahead is as far as the board goes: enough to plan against, and it
+  // keeps the laid-out run bounded instead of growing without end.
+  const MAX_MONTHS = 12
+  let rendered = $state(6)
+  // Which months are actually on screen, as offsets from the anchor — the
+  // header reports this rather than the whole laid-out run, which would read
+  // "Oct 2026 – Jun 2030" after a long scroll and tell you nothing.
+  let onScreen = $state({ first: 0, last: 1 })
+  const resetRun = () => {
+    rendered = view.months * ROWS_AHEAD
+    onScreen = { first: 0, last: view.months - 1 }
+  }
+
+  let themePref = $state<ThemePref>(storedPref())
+  const theme = $derived(resolveTheme(themePref))
+  const surface = $derived(surfaceOf(theme))
+  $effect(() => applyTheme(theme))
+
+  // While the preference is "system", follow the OS if it changes mid-session.
+  $effect(() => {
+    if (themePref !== 'system' || typeof matchMedia !== 'function') return
+    const mq = matchMedia('(prefers-color-scheme: light)')
+    const onChange = () => applyTheme(systemTheme())
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  })
+
+  function toggleTheme() {
+    themePref = theme === 'dark' ? 'light' : 'dark'
+    storePref(themePref)
+  }
 
   let saveState = $state('')
   let editing = $state<{ task: Task | null } | null>(null)
@@ -82,6 +120,7 @@
       tasks = []
       view.anchor = firstOfMonth(new Date())
     }
+    resetRun()
     if (fresh || !loaded) await save()
   }
 
@@ -190,6 +229,7 @@
     if (parsed.name) meta.name = parsed.name
     // Jump the viewport to where the imported work actually is.
     view.anchor = firstOfMonth(parseISO(earliestStart(tasks)))
+    resetRun()
     importing = false
     scheduleSave()
     return null
@@ -222,16 +262,23 @@
       {view}
       total={tasks.length}
       visible={visible.length}
+      from={onScreen.first}
+      to={onScreen.last}
+      {theme}
+      onToggleTheme={toggleTheme}
       onMonths={(n) => {
         view.months = n
+        resetRun()
         scheduleSave()
       }}
       onShift={(n) => {
         view.anchor = addMonths(view.anchor, n)
+        resetRun()
         scheduleSave()
       }}
       onToday={() => {
         view.anchor = firstOfMonth(new Date())
+        resetRun()
         scheduleSave()
       }}
       onNew={() => (editing = { task: null })}
@@ -259,13 +306,21 @@
       tasks={visible}
       {view}
       {hues}
+      {surface}
+      {rendered}
       isEmpty={tasks.length === 0}
       hiddenByFilters={tasks.length > 0 && visible.length === 0}
       onEdit={(t) => (editing = { task: t })}
       onCommit={scheduleSave}
+      onExtend={() => {
+        if (rendered < MAX_MONTHS) rendered = Math.min(MAX_MONTHS, rendered + view.months * 2)
+      }}
+      onVisible={(first, last) => {
+        if (first !== onScreen.first || last !== onScreen.last) onScreen = { first, last }
+      }}
     />
 
-    <Legend {saveState} />
+    <Legend {saveState} {surface} />
   </div>
 
   {#if editing}

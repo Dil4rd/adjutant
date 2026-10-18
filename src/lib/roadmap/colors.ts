@@ -68,9 +68,25 @@ export interface Skin {
   text: string
 }
 
-// The page the blocks sit on, and the lightest ink available.
-const PAGE = '#14110f'
-const INK = '#f3ede7'
+export type ThemeName = 'dark' | 'light'
+
+/**
+ * The two colours every block weight is computed against: the page it sits on
+ * and the ink that contrasts with it. Blocks target contrast RATIOS, so the
+ * same targets produce a dark-on-light board and a light-on-dark one without
+ * any per-theme tuning.
+ */
+export interface Surface {
+  page: string
+  ink: string
+}
+
+export const SURFACES: Record<ThemeName, Surface> = {
+  dark: { page: '#14110f', ink: '#f3ede7' },
+  light: { page: '#faf7f3', ink: '#1b1714' },
+}
+
+export const DEFAULT_SURFACE = SURFACES.dark
 
 /** WCAG contrast ratio between two opaque colours. */
 export function contrastRatio(a: string, b: string): number {
@@ -88,14 +104,15 @@ export function contrastRatio(a: string, b: string): number {
  * recedes into invisibility while a yellow stays loud. Targeting the ratio
  * itself makes every hue land at the same visual weight.
  */
-function atContrast(base: string, target: number): string {
-  const toward = contrastRatio(base, PAGE) > target ? PAGE : INK
+function atContrast(base: string, target: number, surface: Surface): string {
+  const { page, ink } = surface
+  const toward = contrastRatio(base, page) > target ? page : ink
   let lo = 0
   let hi = 1
   for (let i = 0; i < 20; i++) {
     const mid = (lo + hi) / 2
-    const over = contrastRatio(mix(base, toward, mid), PAGE) > target
-    if (toward === PAGE ? over : !over) lo = mid
+    const over = contrastRatio(mix(base, toward, mid), page) > target
+    if (toward === page ? over : !over) lo = mid
     else hi = mid
   }
   return mix(base, toward, (lo + hi) / 2)
@@ -112,10 +129,10 @@ function atContrast(base: string, target: number): string {
  */
 const MIN_FILL_CONTRAST = 1.3
 
-function atLeastContrast(c: string, min: number): string {
+function atLeastContrast(c: string, min: number, surface: Surface): string {
   let out = c
-  for (let i = 0; i < 40 && contrastRatio(out, PAGE) < min; i++) {
-    out = mix(out, INK, 0.04)
+  for (let i = 0; i < 40 && contrastRatio(out, surface.page) < min; i++) {
+    out = mix(out, surface.ink, 0.04)
   }
   return out
 }
@@ -157,10 +174,21 @@ const BORDER_TARGET: Record<Task['status'], number> = {
 export function blockSkin(
   task: Pick<Task, 'color' | 'isMyTeam' | 'status'>,
   projectHue?: string,
+  surface: Surface = DEFAULT_SURFACE,
 ): Skin {
   const base = baseColor(task, projectHue)
   const fillTarget = FILL_TARGET[task.status][task.isMyTeam ? 'mine' : 'theirs']
-  const fill = atLeastContrast(atContrast(base, fillTarget), MIN_FILL_CONTRAST)
-  const border = atContrast(base, Math.max(3.05, BORDER_TARGET[task.status]))
-  return { fill, border, text: luminance(fill) > 0.42 ? '#14110f' : '#f3ede7' }
+  const fill = atLeastContrast(
+    atContrast(base, fillTarget, surface),
+    MIN_FILL_CONTRAST,
+    surface,
+  )
+  const border = atContrast(base, Math.max(3.05, BORDER_TARGET[task.status]), surface)
+  // Whichever of the surface's two colours reads better on this fill — which
+  // flips with the theme, so it is measured rather than assumed.
+  const text =
+    contrastRatio(surface.ink, fill) >= contrastRatio(surface.page, fill)
+      ? surface.ink
+      : surface.page
+  return { fill, border, text }
 }

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { diffDays, parseISO, shiftISO } from '../lib/roadmap/dates'
+  import type { Surface } from '../lib/roadmap/colors'
   import type { Task, ViewState } from '../lib/roadmap/types'
   import MonthPanel from './MonthPanel.svelte'
 
@@ -7,21 +8,33 @@
     tasks,
     view,
     hues,
+    surface,
+    rendered,
     isEmpty,
     hiddenByFilters,
     onEdit,
     onCommit,
+    onExtend,
+    onVisible,
   }: {
     tasks: Task[]
     view: ViewState
+    /** How many months are currently laid out, starting at view.anchor. */
+    rendered: number
     /** Project name → the hue every one of its stages is drawn in. */
     hues: Map<string, string>
+    /** Page + ink the block weights are computed against. */
+    surface: Surface
     /** The whole dataset is empty — distinct from a filter hiding everything. */
     isEmpty: boolean
     /** There IS work, but nothing survives the current filters. */
     hiddenByFilters: boolean
     onEdit: (t: Task) => void
     onCommit: () => void
+    /** Ask for more months, once the end of the laid-out run comes into view. */
+    onExtend: () => void
+    /** Which slice of the run is on screen, as offsets from the anchor. */
+    onVisible: (first: number, last: number) => void
   } = $props()
 
   // Slim: one line per block, so a dense week stays short.
@@ -33,11 +46,63 @@
 
   const panels = $derived.by(() => {
     const a = parseISO(view.anchor)
-    return Array.from({ length: view.months }, (_, i) => {
+    return Array.from({ length: Math.max(view.months, rendered) }, (_, i) => {
       const d = new Date(a.getFullYear(), a.getMonth() + i, 1, 12)
       return { key: `${d.getFullYear()}-${d.getMonth()}`, year: d.getFullYear(), month: d.getMonth() }
     })
   })
+
+  /* The run of months extends as you reach the end of it, so looking further
+     ahead is a scroll rather than repeated clicks on Next. Jumping the anchor
+     (Prev / Next / Today) or changing the layout returns you to the top — the
+     anchor month is the thing you asked to see. */
+  $effect(() => {
+    view.anchor
+    view.months
+    // instant, not smooth: this is a jump to a month you asked for, not a
+    // journey through the year and a half in between
+    host?.scrollTo({ top: 0, behavior: 'instant' })
+  })
+
+  /** Report which months are on screen, so the header can say where you are. */
+  function reportVisible() {
+    if (!host) return
+    const top = host.getBoundingClientRect().top
+    const bottom = top + host.clientHeight
+    const months = host.querySelectorAll('.month')
+    let first = -1
+    let last = -1
+    for (let i = 0; i < months.length; i++) {
+      const r = months[i].getBoundingClientRect()
+      if (r.bottom > top + 4 && r.top < bottom - 4) {
+        if (first < 0) first = i
+        last = i
+      }
+    }
+    if (first >= 0) onVisible(first, last)
+  }
+
+  // after any re-layout, re-measure once the browser has actually laid out
+  $effect(() => {
+    panels.length
+    view.months
+    requestAnimationFrame(() => {
+      reportVisible()
+      // A sparse roadmap makes short months, and short months can fit the
+      // viewport entirely — leaving nothing to scroll and no way to reach
+      // later months at all. So grow the run until it actually overflows.
+      // Extending re-runs this effect, which converges once it does (or once
+      // the parent's cap is hit).
+      if (host && host.scrollHeight <= host.clientHeight + 4) onExtend()
+    })
+  })
+
+  function onScroll() {
+    if (!host) return
+    reportVisible()
+    const remaining = host.scrollHeight - host.scrollTop - host.clientHeight
+    if (remaining < host.clientHeight * 0.75) onExtend()
+  }
 
   /* When every visible task belongs to one project, the project name on each
      block is pure repetition that crowds out the stage title — which is the
@@ -139,9 +204,8 @@
   role="application"
   aria-label="Roadmap calendar"
   bind:this={host}
-  style="grid-template-columns:{view.months === 1
-    ? 'minmax(0, 1fr)'
-    : 'repeat(auto-fit, minmax(330px, 1fr))'}"
+  onscroll={onScroll}
+  style="--cols:{view.months}"
   onpointerdown={onPointerDown}
   onpointermove={onPointerMove}
   onpointerup={endDrag}
@@ -161,6 +225,7 @@
       month={p.month}
       {tasks}
       {hues}
+      {surface}
       {showProject}
       laneH={LANE_H}
       blockH={BLOCK_H}

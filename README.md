@@ -151,8 +151,8 @@ the preference persisted alongside the rest of the view.
 Chrome colours follow hindsightly's warm near-black; task colours are tuned to
 sit on it, warm end first.
 
-**Contrast is a constraint, not an afterthought.** Every text token clears
-WCAG AA (4.5:1) against the page, including the quietest — de-emphasis comes
+**Contrast is a constraint, not an afterthought.** In BOTH themes, every text
+token clears WCAG AA (4.5:1) against the page, including the quietest — de-emphasis comes
 from the *step between* tokens, not from fading text toward the background.
 Block fills target explicit contrast ratios rather than fixed mix ratios, so
 any hue lands at the same visual weight: a slate blue and a yellow recede by
@@ -173,8 +173,18 @@ segment per week row; cut edges lose their border and radius so they read as
 - **Drag** a block to move it; **drag an edge** to resize. Both snap to days and
   cross week rows and month panels.
 - **Other teams** in the filter bar hides every stage not owned by my team.
-- 1 / 2 / 3 month views, Previous / Next / Today, and a project filter bar
-  generated from the data.
+- The **1 / 2 / 3 Months** toggle sets how many months sit side by side; the
+  run continues below, so looking further ahead is a scroll rather than
+  repeated clicks on Next. It extends on demand and **stops at one year** from
+  the anchor. Previous / Next / Today jump the anchor and return you to the top.
+- The header reports the months **actually on screen**, not the whole laid-out
+  run — after a long scroll, "Oct 2026 – Jun 2030" would tell you nothing.
+- A project filter bar generated from the data.
+- **Day / night themes**, following the OS until you choose one. The preference
+  lives in plain `localStorage`, not the encrypted blob: the lock screen has to
+  be drawn before anything is unlocked, and it is not a secret. Block weights
+  are computed against the active surface, so the same contrast targets produce
+  a dark-on-light board and a light-on-dark one with no per-theme tuning.
 - Edits autosave (debounced, encrypted) and survive reload.
 
 ## Data format

@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { blockSkin } from '../lib/roadmap/colors'
+  import { blockSkin, type Surface } from '../lib/roadmap/colors'
   import { STATUS_SHORT } from '../lib/roadmap/types'
   import type { Segment } from '../lib/roadmap/layout'
 
   let {
     seg,
     hue,
+    surface,
     showProject,
     laneH,
     blockH,
@@ -14,6 +15,7 @@
     seg: Segment
     /** The project's hue; undefined falls back to the task's own colour. */
     hue: string | undefined
+    surface: Surface
     showProject: boolean
     laneH: number
     blockH: number
@@ -21,7 +23,7 @@
   } = $props()
 
   const t = $derived(seg.task)
-  const skin = $derived(blockSkin(t, hue))
+  const skin = $derived(blockSkin(t, hue, surface))
   const insetL = $derived(seg.clipS ? 0 : 2)
   const insetR = $derived(seg.clipE ? 0 : 2)
 
