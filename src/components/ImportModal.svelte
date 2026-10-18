@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { readText } from '../lib/clipboard'
+
   let {
     onImport,
     onCancel,
@@ -10,9 +12,23 @@
   let error = $state('')
   let over = $state(false)
   let fileInput: HTMLInputElement
+  let box: HTMLTextAreaElement
 
   async function takeFile(f: File | undefined) {
     if (f) text = await f.text()
+  }
+
+  async function paste() {
+    const r = await readText()
+    if (r.ok) {
+      text = r.text
+      error = ''
+      return
+    }
+    // Reading the clipboard is the half browsers restrict, so fall back to the
+    // box the user can always paste into themselves.
+    error = r.reason
+    box?.focus()
   }
 
   function run() {
@@ -35,6 +51,7 @@
       <textarea
         id="importText"
         style="min-height:180px"
+        bind:this={box}
         bind:value={text}
         placeholder={'[{"id":"s1","project":"Example Programme","stage":"Stage 1: Baseline & Testing","executor":"Core Team","startDate":"2026-10-19","endDate":"2026-10-28","status":"intensive","isMyTeam":true,"color":"#8b5cf6","comments":"…"}]'}
       ></textarea>
@@ -61,8 +78,9 @@
         takeFile(e.dataTransfer?.files?.[0])
       }}
     >
-      Drop a <strong>.json</strong> file here, or
-      <button id="btnPickFile" class="link" onclick={() => fileInput.click()}>choose a file</button>
+      Drop a <strong>.json</strong> file here,
+      <button id="btnPickFile" class="link" onclick={() => fileInput.click()}>choose a file</button>, or
+      <button id="btnPaste" class="link" onclick={paste}>paste from the clipboard</button>
       <input
         id="fileInput"
         type="file"

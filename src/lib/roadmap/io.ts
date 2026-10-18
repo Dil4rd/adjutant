@@ -18,6 +18,11 @@ export function buildExport(meta: Meta, tasks: Task[]): ExportEnvelope {
   }
 }
 
+/** The exact bytes both Export JSON and Copy produce. */
+export function exportText(meta: Meta, tasks: Task[]): string {
+  return JSON.stringify(buildExport(meta, tasks), null, 2)
+}
+
 export interface ParsedImport {
   tasks: Task[]
   name?: string

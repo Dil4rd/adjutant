@@ -13,6 +13,7 @@
     onToday,
     onNew,
     onExport,
+    onCopy,
     onImport,
     onBackupKey,
     onLock,
@@ -30,12 +31,25 @@
     onToday: () => void
     onNew: () => void
     onExport: () => void
+    /** Same JSON, straight to the clipboard. Returns false if the browser refused. */
+    onCopy: () => Promise<boolean>
     onImport: () => void
     onBackupKey: () => void
     onLock: () => void
     theme: 'dark' | 'light'
     onToggleTheme: () => void
   } = $props()
+
+  let copied = $state(false)
+  let copyTimer: ReturnType<typeof setTimeout> | null = null
+
+  async function copy() {
+    const ok = await onCopy()
+    if (!ok) return
+    copied = true
+    if (copyTimer) clearTimeout(copyTimer)
+    copyTimer = setTimeout(() => (copied = false), 1600)
+  }
 
   const range = $derived.by(() => {
     const anchor = parseISO(view.anchor)
@@ -46,7 +60,8 @@
       ' ' +
       a.getFullYear() +
       (to > from ? ' – ' + MONTHS[b.getMonth()].slice(0, 3) + ' ' + b.getFullYear() : '')
-    const count = visible === total ? `${total} tasks` : `${visible} of ${total} tasks`
+    const plural = (n: number) => `${n} task${n === 1 ? '' : 's'}`
+    const count = visible === total ? plural(total) : `${visible} of ${plural(total)}`
     return `${head}  ·  ${count}`
   })
 </script>
@@ -68,7 +83,20 @@
   <div class="range" id="rangeLabel">{range}</div>
   <div class="spacer"></div>
   <button id="btnNew" class="primary" onclick={onNew}>+ New Task</button>
-  <button id="btnExport" onclick={onExport}>Export JSON</button>
+  <!-- One primary action with a variant attached, rather than a menu for two
+       items: the default (download) stays a single click. -->
+  <div class="group boxed">
+    <button id="btnExport" title="Download a .json file" onclick={onExport}>Export JSON</button>
+    <button
+      id="btnExportCopy"
+      class="icon"
+      title="Copy the roadmap JSON to the clipboard"
+      aria-label="Copy the roadmap JSON to the clipboard"
+      onclick={copy}
+    >
+      {copied ? '✓' : '⧉'}
+    </button>
+  </div>
   <button id="btnImport" onclick={onImport}>Import JSON</button>
   <button
     id="btnTheme"

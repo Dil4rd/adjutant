@@ -1,6 +1,6 @@
 import { sampleTasks } from './fixtures'
 import { describe, expect, it } from 'vitest'
-import { buildExport, earliestStart, mergeById, parseImport } from '../src/lib/roadmap/io'
+import { buildExport, earliestStart, exportText, mergeById, parseImport } from '../src/lib/roadmap/io'
 import type { Meta } from '../src/lib/roadmap/types'
 
 const META: Meta = { version: 1, name: 'Roadmap', updatedAt: null }
@@ -111,5 +111,27 @@ describe('merge', () => {
 describe('viewport targeting', () => {
   it('finds the earliest start', () => {
     expect(earliestStart(sampleTasks())).toBe('2026-10-19')
+  })
+})
+
+describe('export text', () => {
+  const tasks = sampleTasks()
+
+  it('is what the download and the clipboard both carry', () => {
+    const text = exportText(META, tasks)
+    expect(JSON.parse(text)).toEqual({ ...buildExport(META, tasks), exportedAt: JSON.parse(text).exportedAt })
+  })
+
+  it('is pretty-printed, so a pasted roadmap stays readable', () => {
+    expect(exportText(META, tasks)).toContain('\n  "tasks": [')
+  })
+
+  it('round-trips straight back through import', () => {
+    expect(parseImport(exportText(META, tasks)).tasks).toEqual(tasks)
+  })
+
+  it('handles an empty roadmap without throwing', () => {
+    expect(() => exportText(META, [])).not.toThrow()
+    expect(JSON.parse(exportText(META, [])).tasks).toEqual([])
   })
 })

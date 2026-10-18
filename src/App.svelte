@@ -1,7 +1,8 @@
 <script lang="ts">
   import { enrolPasskey, hasRecipients, isUnopenable, loadVault } from './lib/auth/vault'
   import { addMonths, firstOfMonth, parseISO, todayISO } from './lib/roadmap/dates'
-  import { buildExport, earliestStart, mergeById, parseImport } from './lib/roadmap/io'
+  import { earliestStart, exportText, mergeById, parseImport } from './lib/roadmap/io'
+  import { copyText } from './lib/clipboard'
   import { normalizeTask, projectHues } from './lib/roadmap/model'
   import { clearData, readData, writeData } from './lib/roadmap/storage'
   import type { Meta, Task, ViewState } from './lib/roadmap/types'
@@ -201,11 +202,16 @@
 
   // ---- import / export -----------------------------------------------------
 
+  const roadmapText = () => exportText($state.snapshot(meta), $state.snapshot(tasks))
+
+  async function doCopy(): Promise<boolean> {
+    const r = await copyText(roadmapText())
+    saveState = r.ok ? 'roadmap copied to the clipboard' : r.reason
+    return r.ok
+  }
+
   function doExport() {
-    const payload = buildExport($state.snapshot(meta), $state.snapshot(tasks))
-    const url = URL.createObjectURL(
-      new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }),
-    )
+    const url = URL.createObjectURL(new Blob([roadmapText()], { type: 'application/json' }))
     const a = document.createElement('a')
     a.href = url
     a.download = 'roadmap-' + todayISO() + '.json'
@@ -283,6 +289,7 @@
       }}
       onNew={() => (editing = { task: null })}
       onExport={doExport}
+      onCopy={doCopy}
       onImport={() => (importing = true)}
       onBackupKey={backupKey}
       onLock={lock}

@@ -90,8 +90,12 @@ button.ghost { border-color: transparent; color: var(--muted); }
 button.ghost:hover:not(:disabled) { color: var(--fg); }
 button.link {
   background: none; border: none; color: var(--muted);
-  text-decoration: underline; padding: 0.2rem;
+  text-decoration: underline;
+  /* no horizontal padding: these sit inline in a sentence, so they must butt
+     up against the punctuation that follows them */
+  padding: 0.2rem 0;
 }
+button.link:hover { color: var(--fg); }
 button.on { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
 
 input, select, textarea {
@@ -164,6 +168,13 @@ header.bar {
 header.bar button { font-size: 0.78rem; }
 /* the sun/moon glyph needs a little more room than a word does */
 #btnTheme { font-size: 0.95rem; line-height: 1; padding: 0.22rem 0.5rem; }
+/* The variant attached to a primary action: narrow, glyph only, and visually
+   part of the button it modifies. */
+.group.boxed button.icon {
+  font-size: 0.88rem; line-height: 1; padding: 0.25rem 0.45rem;
+  color: var(--muted);
+}
+.group.boxed button.icon:hover:not(:disabled) { color: var(--fg); background: var(--hover); }
 
 .filters {
   display: flex; gap: 0.3rem; flex-wrap: wrap; align-items: center;

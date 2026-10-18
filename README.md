@@ -224,7 +224,18 @@ step with an imported file.
 - An inverted range is swapped rather than rejected.
 
 **Import** accepts a bare array of these objects, or an export envelope
-`{ version, app, exportedAt, meta, tasks }`, in replace or merge-by-id mode.
+`{ version, app, exportedAt, meta, tasks }`, in replace or merge-by-id mode —
+from a dropped file, a file picker, **or the clipboard**.
+
+**Export** downloads a `.json` file in one click, and the ⧉ button beside it
+puts the identical text on the clipboard. Both come from the same
+`exportText()`, so a pasted roadmap and a downloaded one are byte-identical.
+
+Clipboard support is best-effort by necessity: reading is the half browsers
+restrict (Safari confirms each paste, some refuse it to pages outright), so a
+blocked read says so and focuses the box you can always paste into yourself.
+Copying falls back to a legacy `execCommand` path where the async API is
+unavailable.
 Legacy aliases (`title`, `start`, `end`, `team`, `notes`, `owner`) still load.
 
 **Migration note.** `"active"` was the old neutral status and no longer exists.
