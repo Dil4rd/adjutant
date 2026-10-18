@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte'
-  import { paletteFor } from '../lib/roadmap/colors'
+  import { palette } from '../lib/roadmap/colors'
   import { shiftISO, todayISO } from '../lib/roadmap/dates'
   import { normalizeTask } from '../lib/roadmap/model'
   import { STATUSES, STATUS_LABEL, type Task } from '../lib/roadmap/types'
@@ -51,13 +51,12 @@
   let comments = $state(seed.task ? seed.task.comments : '')
   let error = $state('')
 
-  const palette = $derived(paletteFor(draft.isMyTeam))
+  const swatches = palette()
 
   function setTeam(isMyTeam: boolean) {
+    // Ownership no longer touches colour — hue identifies the project, and
+    // ownership is carried by how much the block recedes.
     draft.isMyTeam = isMyTeam
-    // Snap to the palette for the new classification so the hierarchy holds.
-    const pal = paletteFor(isMyTeam)
-    if (!pal.some((c) => c.toLowerCase() === draft.color.toLowerCase())) draft.color = pal[0]
   }
 
   function save() {
@@ -116,7 +115,7 @@
             onchange={(e) => setTeam((e.currentTarget as HTMLInputElement).checked)}
           />
           <span class="cap">My team</span>
-          <span class="why">{draft.isMyTeam ? 'vibrant' : 'greyed out'}</span>
+          <span class="why">{draft.isMyTeam ? 'full strength' : 'dimmed'}</span>
         </label>
       </div>
     </div>
@@ -146,11 +145,9 @@
 
     <div class="field">
       <!-- svelte-ignore a11y_label_has_associated_control -->
-      <label id="fColorLabel">
-        {draft.isMyTeam ? 'Colour' : 'Colour — not-my-team work is greyed'}
-      </label>
+      <label id="fColorLabel">Project colour — applies to every stage in this project</label>
       <div class="swatches" id="fColor">
-        {#each palette as c (c)}
+        {#each swatches as c (c)}
           <button
             type="button"
             data-color={c}

@@ -5,12 +5,15 @@
 
   let {
     seg,
+    hue,
     showProject,
     laneH,
     blockH,
     lanePad,
   }: {
     seg: Segment
+    /** The project's hue; undefined falls back to the task's own colour. */
+    hue: string | undefined
     showProject: boolean
     laneH: number
     blockH: number
@@ -18,7 +21,7 @@
   } = $props()
 
   const t = $derived(seg.task)
-  const skin = $derived(blockSkin(t))
+  const skin = $derived(blockSkin(t, hue))
   const insetL = $derived(seg.clipS ? 0 : 2)
   const insetR = $derived(seg.clipE ? 0 : 2)
 
@@ -45,6 +48,7 @@
 
 <div
   class="block s-{t.status}"
+  class:other-team={!t.isMyTeam}
   class:clip-s={seg.clipS}
   class:clip-e={seg.clipE}
   data-id={t.id}

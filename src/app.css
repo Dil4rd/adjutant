@@ -139,6 +139,24 @@ header.bar button { font-size: 0.78rem; }
 .filters button:hover:not(.on) { color: var(--fg); }
 .filters button.on { color: #fff; }
 
+/* A visibility switch, not a filter pill — it reads as a checkbox so it is
+   clearly a toggle rather than another project to select. */
+.filters button.toggle {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  border-radius: 6px; margin-left: auto;
+  background: transparent; border-color: var(--border); color: var(--muted);
+}
+.filters button.toggle .box {
+  width: 11px; height: 11px; border-radius: 3px;
+  border: 1px solid var(--dim); background: transparent;
+}
+.filters button.toggle.on { background: transparent; color: var(--fg); border-color: var(--border); }
+.filters button.toggle.on .box {
+  background: var(--accent); border-color: var(--accent);
+  box-shadow: inset 0 0 0 1.5px var(--panel);
+}
+.filters button.toggle:not(.on) { color: var(--dim); }
+
 /* ---------- calendar ---------- */
 #months {
   flex: 1; overflow: auto; padding: 0.7rem;

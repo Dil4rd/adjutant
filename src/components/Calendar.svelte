@@ -6,14 +6,20 @@
   let {
     tasks,
     view,
+    hues,
     isEmpty,
+    hiddenByFilters,
     onEdit,
     onCommit,
   }: {
     tasks: Task[]
     view: ViewState
+    /** Project name → the hue every one of its stages is drawn in. */
+    hues: Map<string, string>
     /** The whole dataset is empty — distinct from a filter hiding everything. */
     isEmpty: boolean
+    /** There IS work, but nothing survives the current filters. */
+    hiddenByFilters: boolean
     onEdit: (t: Task) => void
     onCommit: () => void
   } = $props()
@@ -146,12 +152,15 @@
       No tasks yet — add one with <strong>+ New Task</strong>, or load a roadmap with
       <strong>Import JSON</strong>.
     </p>
+  {:else if hiddenByFilters}
+    <p class="empty">Everything is hidden by the current filters.</p>
   {/if}
   {#each panels as p (p.key)}
     <MonthPanel
       year={p.year}
       month={p.month}
       {tasks}
+      {hues}
       {showProject}
       laneH={LANE_H}
       blockH={BLOCK_H}

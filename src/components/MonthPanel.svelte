@@ -8,6 +8,7 @@
     year,
     month,
     tasks,
+    hues,
     showProject,
     laneH,
     blockH,
@@ -16,6 +17,7 @@
     year: number
     month: number
     tasks: Task[]
+    hues: Map<string, string>
     showProject: boolean
     laneH: number
     blockH: number
@@ -61,7 +63,7 @@
         style="height:{week.layout.laneCount ? week.layout.laneCount * laneH + lanePad : 6}px"
       >
         {#each week.layout.segs as seg (seg.task.id)}
-          <TaskBlock {seg} {showProject} {laneH} {blockH} {lanePad} />
+          <TaskBlock {seg} hue={hues.get(seg.task.project)} {showProject} {laneH} {blockH} {lanePad} />
         {/each}
       </div>
     </div>

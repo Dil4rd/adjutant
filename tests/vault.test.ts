@@ -32,7 +32,7 @@ const rawOf = async (k: CryptoKey) => Buffer.from(await crypto.subtle.exportKey(
 const payload = (): Persisted => ({
   meta: { version: 1, name: 'Roadmap', updatedAt: null },
   tasks: sampleTasks(),
-  view: { months: 2, anchor: '2026-10-01', project: 'All' },
+  view: { months: 2, anchor: '2026-10-01', project: 'All', showOtherTeams: true },
 })
 
 beforeEach(() => {

@@ -2,7 +2,7 @@
   import { enrolPasskey, hasRecipients, isUnopenable, loadVault } from './lib/auth/vault'
   import { addMonths, firstOfMonth, parseISO, todayISO } from './lib/roadmap/dates'
   import { buildExport, earliestStart, mergeById, parseImport } from './lib/roadmap/io'
-  import { normalizeTask } from './lib/roadmap/model'
+  import { normalizeTask, projectHues } from './lib/roadmap/model'
   import { clearData, readData, writeData } from './lib/roadmap/storage'
   import type { Meta, Task, ViewState } from './lib/roadmap/types'
 
@@ -29,6 +29,7 @@
     months: 2,
     anchor: firstOfMonth(new Date()),
     project: 'All',
+    showOtherTeams: true,
   })
 
   let saveState = $state('')
@@ -36,8 +37,15 @@
   let importing = $state(false)
 
   const visible = $derived(
-    view.project === 'All' ? tasks : tasks.filter((t) => t.project === view.project),
+    tasks.filter(
+      (t) =>
+        (view.project === 'All' || t.project === view.project) &&
+        (view.showOtherTeams || t.isMyTeam),
+    ),
   )
+  // Hue identifies the project, so it is derived from the whole dataset — not
+  // from whatever happens to be on screen.
+  const hues = $derived(projectHues(tasks))
   const projects = $derived([...new Set(tasks.map((t) => t.project))].sort())
   const executors = $derived([...new Set(tasks.map((t) => t.executor).filter(Boolean))].sort())
 
@@ -64,6 +72,8 @@
       meta = { ...meta, ...loaded.meta }
       tasks = loaded.tasks.map((t) => normalizeTask(t))
       view = { ...view, ...loaded.view }
+      // a view saved before the toggle existed has no preference recorded
+      if (typeof view.showOtherTeams !== 'boolean') view.showOtherTeams = true
       if (!view.anchor) view.anchor = firstOfMonth(new Date())
       saveState = 'encrypted · local only'
     } else {
@@ -136,6 +146,9 @@
       if (existing) Object.assign(existing, next)
       else tasks.push(next)
     }
+    // Colour belongs to the project, so applying it here keeps every stage of
+    // that project in step instead of leaving the board half-recoloured.
+    for (const t of tasks) if (t.project === next.project) t.color = next.color
     editing = null
     scheduleSave()
   }
@@ -231,8 +244,13 @@
     <Filters
       {tasks}
       project={view.project}
+      showOtherTeams={view.showOtherTeams}
       onSelect={(p) => {
         view.project = p
+        scheduleSave()
+      }}
+      onToggleOtherTeams={() => {
+        view.showOtherTeams = !view.showOtherTeams
         scheduleSave()
       }}
     />
@@ -240,7 +258,9 @@
     <Calendar
       tasks={visible}
       {view}
+      {hues}
       isEmpty={tasks.length === 0}
+      hiddenByFilters={tasks.length > 0 && visible.length === 0}
       onEdit={(t) => (editing = { task: t })}
       onCommit={scheduleSave}
     />

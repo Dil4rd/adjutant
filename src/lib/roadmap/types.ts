@@ -54,6 +54,8 @@ export interface ViewState {
   months: 1 | 2 | 3
   anchor: string // ISO first-of-month for the leftmost panel
   project: string // "All" or an exact project name
+  /** Show work owned by anyone other than my team. Persisted with the view. */
+  showOtherTeams: boolean
 }
 
 export interface Meta {

@@ -4,20 +4,20 @@
 
 import type { Task } from './types'
 
-// Tuned for hindsightly's warm near-black (#14110f), warm end first. The
-// violet and slate your roadmap already uses are kept in the ramps so stored
-// colours still light up a swatch in the editor.
-export const MY_TEAM_COLORS = [
+/**
+ * One ramp, used for every task regardless of ownership.
+ *
+ * Colour identifies the PROJECT, not who is doing the work — so a glance at a
+ * block says which project it belongs to, and ownership is carried by weight
+ * instead. Tuned for the warm near-black page, warm end first; the violet and
+ * slate an existing roadmap may already use are both included so stored
+ * colours still light up a swatch in the editor.
+ */
+export const PROJECT_COLORS = [
   '#e44332', '#f97316', '#eab308', '#84cc16',
   '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6',
+  '#64748b', '#8d8279',
 ]
-export const OTHER_TEAM_COLORS = [
-  '#7d7169', '#6b6158', '#8d8279', '#5b534c', '#9c9189', '#64748b',
-]
-
-/** @deprecated kept so older imports keep resolving */
-export const INTERNAL_COLORS = MY_TEAM_COLORS
-export const EXTERNAL_COLORS = OTHER_TEAM_COLORS
 
 export function hexToRgb(h: string): [number, number, number] {
   const s = h.replace('#', '')
@@ -47,45 +47,19 @@ export function luminance(hex: string): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 
-/** How far a colour strays from grey: max channel spread, 0..255. */
-export function saturationSpread(hex: string): number {
-  const c = hexToRgb(hex)
-  return Math.max(...c) - Math.min(...c)
-}
-
-// A warm neutral to pull greyed colours toward, so they sit on the warm
-// near-black rather than floating cold above it.
-const GREY_TINT: [number, number, number] = [134, 120, 106]
-const GREY_MIX = 0.45
-
-/** Desaturate to a warm grey, preserving perceived lightness. */
-export function toGrey(hex: string): string {
-  const [r, g, b] = hexToRgb(hex)
-  const y = Math.round(0.299 * r + 0.587 * g + 0.114 * b)
-  // One coefficient for every channel: the tint supplies the warmth, so
-  // lightness stays monotonic across r/g/b.
-  const k = 1 - GREY_MIX
-  return rgbToHex(
-    y * k + GREY_TINT[0] * GREY_MIX,
-    y * k + GREY_TINT[1] * GREY_MIX,
-    y * k + GREY_TINT[2] * GREY_MIX,
-  )
-}
-
-export const paletteFor = (isMyTeam: boolean): string[] =>
-  isMyTeam ? MY_TEAM_COLORS : OTHER_TEAM_COLORS
+export const palette = (): string[] => PROJECT_COLORS
 
 export const isHex = (v: unknown): v is string =>
   typeof v === 'string' && /^#[0-9a-f]{3,6}$/i.test(v)
 
-export function baseColor(task: Pick<Task, 'color' | 'isMyTeam'>): string {
-  const c = isHex(task.color) ? task.color : MY_TEAM_COLORS[0]
-  // Not-my-team work is out of focus, always. A colour that is already a grey
-  // or slate (#64748b, say) is left alone so a deliberate neutral keeps its
-  // character; only a genuinely saturated hue gets flattened. Either way the
-  // invariant holds: nothing external ever renders vibrant.
-  if (task.isMyTeam) return c
-  return saturationSpread(c) > 40 ? toGrey(c) : c
+/**
+ * The hue a block is drawn in. `projectHue` wins when supplied, so every stage
+ * of a project reads as that project even when an imported file gave its
+ * other-team stages a different colour.
+ */
+export function baseColor(task: Pick<Task, 'color'>, projectHue?: string): string {
+  if (isHex(projectHue)) return projectHue
+  return isHex(task.color) ? task.color : PROJECT_COLORS[0]
 }
 
 export interface Skin {
@@ -128,22 +102,50 @@ function atContrast(base: string, target: number): string {
 }
 
 /**
- * Where each block's fill sits against the page, loudest first. Quieter work
- * recedes, and not-my-team recedes a further step — but nothing is allowed to
- * reach the page itself: the quietest combination still separates at 1.3:1.
- * (Mix-ratio tuning previously put on-hold/not-mine at 1.09:1 — a block you
- * could only find by its dotted outline.)
+ * The floor no block may fall through, whatever its hue.
+ *
+ * `atContrast` aims at a target but cannot always land on it: colours are
+ * quantised to 8-bit channels, so the search settles within ~0.015 of the
+ * mark. That is invisible, except at the very bottom of the scale where it
+ * could tip the quietest block under the minimum — so the minimum is enforced
+ * rather than assumed.
+ */
+const MIN_FILL_CONTRAST = 1.3
+
+function atLeastContrast(c: string, min: number): string {
+  let out = c
+  for (let i = 0; i < 40 && contrastRatio(out, PAGE) < min; i++) {
+    out = mix(out, INK, 0.04)
+  }
+  return out
+}
+
+/**
+ * Where each block's fill sits against the page, loudest first.
+ *
+ * Since hue now identifies the PROJECT, ownership has to be carried entirely
+ * by weight — and a gentle dimming was not enough to read at a glance. So the
+ * two bands are kept apart: my team is SOLID (>= 1.7:1) and other teams are
+ * GHOSTED (<= 1.5:1), which reads as filled-vs-outlined rather than as
+ * "slightly darker". Intensity still steps within each band.
+ *
+ * Nothing is allowed to reach the page itself: the quietest combination still
+ * separates at 1.3:1.
  */
 const FILL_TARGET: Record<Task['status'], { mine: number; theirs: number }> = {
-  intensive: { mine: 2.1, theirs: 1.75 },
-  background: { mine: 1.72, theirs: 1.48 },
-  hold: { mine: 1.5, theirs: 1.32 },
+  intensive: { mine: 2.45, theirs: 1.52 },
+  background: { mine: 2.0, theirs: 1.42 },
+  // kept clear of MIN_FILL_CONTRAST: if the floor had to lift this one, the
+  // lift is toward a warm ink and would disturb the ordering it sits in.
+  hold: { mine: 1.7, theirs: 1.34 },
 }
 
 /**
  * The border carries the block's boundary, so it clears WCAG 1.4.11's 3:1 for
- * non-text contrast in every state — that is what keeps a receded block
- * unambiguously present rather than merely faint.
+ * non-text contrast in every state — that is what keeps a ghosted block
+ * unambiguously present rather than merely faint. Other-team blocks keep the
+ * full-strength border precisely because their fill is so light: the hue lives
+ * in the outline, which is what makes the project still readable.
  */
 const BORDER_TARGET: Record<Task['status'], number> = {
   intensive: 5.4,
@@ -152,11 +154,13 @@ const BORDER_TARGET: Record<Task['status'], number> = {
 }
 
 /** Fill / border / text for a block, derived from one base hue. */
-export function blockSkin(task: Pick<Task, 'color' | 'isMyTeam' | 'status'>): Skin {
-  const base = baseColor(task)
+export function blockSkin(
+  task: Pick<Task, 'color' | 'isMyTeam' | 'status'>,
+  projectHue?: string,
+): Skin {
+  const base = baseColor(task, projectHue)
   const fillTarget = FILL_TARGET[task.status][task.isMyTeam ? 'mine' : 'theirs']
-  const borderTarget = BORDER_TARGET[task.status] * (task.isMyTeam ? 1 : 0.82)
-  const fill = atContrast(base, fillTarget)
-  const border = atContrast(base, Math.max(3.05, borderTarget))
+  const fill = atLeastContrast(atContrast(base, fillTarget), MIN_FILL_CONTRAST)
+  const border = atContrast(base, Math.max(3.05, BORDER_TARGET[task.status]))
   return { fill, border, text: luminance(fill) > 0.42 ? '#14110f' : '#f3ede7' }
 }

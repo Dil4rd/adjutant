@@ -1,8 +1,8 @@
 import { SAMPLE_RECORD as SPEC, sampleTasks } from './fixtures'
 import { describe, expect, it } from 'vitest'
-import { normalizeTask,  uid } from '../src/lib/roadmap/model'
+import { normalizeTask, projectHues, uid } from '../src/lib/roadmap/model'
 import { diffDays, todayISO } from '../src/lib/roadmap/dates'
-import { paletteFor } from '../src/lib/roadmap/colors'
+import { palette } from '../src/lib/roadmap/colors'
 
 
 describe('the interchange record', () => {
@@ -77,12 +77,12 @@ describe('coercion', () => {
   })
 
   it('assigns palette colours by index, cycling when they run out', () => {
-    const mine = paletteFor(true)
-    const theirs = paletteFor(false)
-    expect(normalizeTask({ isMyTeam: true }, 0).color).toBe(mine[0])
-    expect(normalizeTask({ isMyTeam: true }, 3).color).toBe(mine[3])
-    expect(normalizeTask({ isMyTeam: true }, mine.length).color).toBe(mine[0])
-    expect(normalizeTask({ isMyTeam: false }, 0).color).toBe(theirs[0])
+    const pal = palette()
+    expect(normalizeTask({ isMyTeam: true }, 0).color).toBe(pal[0])
+    expect(normalizeTask({ isMyTeam: true }, 3).color).toBe(pal[3])
+    expect(normalizeTask({ isMyTeam: true }, pal.length).color).toBe(pal[0])
+    // ownership no longer changes which ramp is used
+    expect(normalizeTask({ isMyTeam: false }, 0).color).toBe(pal[0])
   })
 
   it('keeps an explicit colour over the palette default', () => {
@@ -159,5 +159,61 @@ describe('seed roadmap', () => {
 
   it('has unique ids', () => {
     expect(new Set(seed.map((t) => t.id)).size).toBe(seed.length)
+  })
+})
+
+describe('project hue', () => {
+  it('takes the colour of the earliest my-team stage', () => {
+    const hues = projectHues([
+      normalizeTask({ id: 'b', project: 'P', startDate: '2026-02-01', isMyTeam: true, color: '#22c55e' }),
+      normalizeTask({ id: 'a', project: 'P', startDate: '2026-01-01', isMyTeam: true, color: '#3b82f6' }),
+    ])
+    expect(hues.get('P')).toBe('#3b82f6')
+  })
+
+  it('ignores other-team colours when my team is present', () => {
+    // exactly the mixed-file case: ownership used to be carried by hue
+    const hues = projectHues([
+      normalizeTask({ id: 'x', project: 'P', startDate: '2026-01-01', isMyTeam: false, color: '#64748b' }),
+      normalizeTask({ id: 'y', project: 'P', startDate: '2026-01-05', isMyTeam: true, color: '#8b5cf6' }),
+    ])
+    expect(hues.get('P')).toBe('#8b5cf6')
+  })
+
+  it('falls back to the earliest stage when nothing is mine', () => {
+    const hues = projectHues([
+      normalizeTask({ id: 'x', project: 'P', startDate: '2026-03-01', isMyTeam: false, color: '#f97316' }),
+      normalizeTask({ id: 'y', project: 'P', startDate: '2026-01-01', isMyTeam: false, color: '#eab308' }),
+    ])
+    expect(hues.get('P')).toBe('#eab308')
+  })
+
+  it('keeps projects independent', () => {
+    const hues = projectHues([
+      normalizeTask({ id: 'a', project: 'P', isMyTeam: true, color: '#3b82f6' }),
+      normalizeTask({ id: 'b', project: 'Q', isMyTeam: true, color: '#e44332' }),
+    ])
+    expect(hues.get('P')).toBe('#3b82f6')
+    expect(hues.get('Q')).toBe('#e44332')
+    expect(hues.size).toBe(2)
+  })
+
+  it('is deterministic when dates tie', () => {
+    const build = () => [
+      normalizeTask({ id: 'zzz', project: 'P', startDate: '2026-01-01', isMyTeam: true, color: '#22c55e' }),
+      normalizeTask({ id: 'aaa', project: 'P', startDate: '2026-01-01', isMyTeam: true, color: '#3b82f6' }),
+    ]
+    expect(projectHues(build()).get('P')).toBe('#3b82f6') // id breaks the tie
+    expect(projectHues(build().reverse()).get('P')).toBe('#3b82f6')
+  })
+
+  it('handles an empty roadmap', () => {
+    expect(projectHues([]).size).toBe(0)
+  })
+
+  it('gives the whole seeded programme one hue', () => {
+    const hues = projectHues(sampleTasks())
+    expect(hues.size).toBe(1)
+    expect([...hues.values()][0]).toBe('#8b5cf6')
   })
 })

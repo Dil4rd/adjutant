@@ -1,5 +1,5 @@
 import { isValidISO, todayISO } from './dates'
-import { isHex, paletteFor } from './colors'
+import { isHex, palette } from './colors'
 import { DEFAULT_STATUS, STATUSES, type Status, type Task } from './types'
 
 export const uid = (): string =>
@@ -45,7 +45,7 @@ export function normalizeTask(raw: unknown, i = 0): Task {
         ? t.team !== 'external'
         : true
 
-  const pal = paletteFor(isMyTeam)
+  const pal = palette()
 
   return {
     id: str(t.id, 64) || uid(),
@@ -59,4 +59,26 @@ export function normalizeTask(raw: unknown, i = 0): Task {
     color: isHex(t.color) ? t.color : pal[i % pal.length],
     comments: str(t.comments, 4000) || str(t.notes, 4000),
   }
+}
+
+/**
+ * The hue that identifies a project on the board.
+ *
+ * An imported file may well colour its other-team stages differently from the
+ * team's own (ownership used to be carried by hue). So the project takes the
+ * colour of its earliest MY-TEAM stage, falling back to its earliest stage of
+ * any kind — which makes a mixed file read as one project immediately, with no
+ * manual recolouring.
+ */
+export function projectHues(tasks: Task[]): Map<string, string> {
+  const order = (a: Task, b: Task) =>
+    a.startDate.localeCompare(b.startDate) || a.id.localeCompare(b.id)
+  const out = new Map<string, string>()
+  for (const project of new Set(tasks.map((t) => t.project))) {
+    const own = tasks.filter((t) => t.project === project)
+    const mine = own.filter((t) => t.isMyTeam).sort(order)
+    const pick = mine[0] ?? [...own].sort(order)[0]
+    if (pick) out.set(project, pick.color)
+  }
+  return out
 }
