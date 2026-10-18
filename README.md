@@ -125,12 +125,28 @@ state and texturing everything would just be noise.
 
 | Ownership | Treatment |
 |---|---|
-| **My team** | vibrant hue |
-| **Not my team** | greyed, and recedes a further step in fill weight |
+| **My team** | solid fill |
+| **Other team** | ghosted: same project colour, very light fill, full-strength border |
+
+**Colour identifies the project, not the owner.** Every stage of a project is
+drawn in that project's hue, so a glance says *which project* a block belongs
+to. Ownership is carried entirely by weight, in two deliberately separated
+bands — my team is solid (>= 1.7:1 against the page), other teams are ghosted
+(<= 1.52:1) — which reads as filled-versus-outlined rather than as "slightly
+darker". The hue survives in the border, so a ghosted block still announces its
+project.
+
+A project's hue comes from its earliest my-team stage (falling back to its
+earliest stage of any kind), so an imported file that coloured its other-team
+stages differently reads as one project immediately, with no manual
+recolouring. Setting the colour in the editor applies it to every stage of that
+project, keeping the board coherent.
 
 Ownership is a single boolean. Cross-functional teams, contractors and vendors
-are all simply *not my team*, and all recede. Weight does the work as well as
-hue, so the two read apart even in a greyscale screenshot.
+are all simply *not my team*.
+
+**Other-team work can be hidden entirely** — a toggle in the filter bar, with
+the preference persisted alongside the rest of the view.
 
 Chrome colours follow hindsightly's warm near-black; task colours are tuned to
 sit on it, warm end first.
@@ -156,6 +172,7 @@ segment per week row; cut edges lose their border and radius so they read as
 - **Click** a block to edit everything about it, or delete it.
 - **Drag** a block to move it; **drag an edge** to resize. Both snap to days and
   cross week rows and month panels.
+- **Other teams** in the filter bar hides every stage not owned by my team.
 - 1 / 2 / 3 month views, Previous / Next / Today, and a project filter bar
   generated from the data.
 - Edits autosave (debounced, encrypted) and survive reload.
@@ -185,8 +202,8 @@ step with an imported file.
 
 - `status` — `"intensive"` | `"background"` | `"hold"`; anything else falls
   back to `"intensive"`.
-- `isMyTeam` — `true` renders a vibrant hue, `false` a greyed, recessed one.
-  The flag is
+- `isMyTeam` — `true` renders a solid block, `false` a ghosted one in the same
+  project colour. The flag is
   deliberately binary: the only distinction that matters is whether the work is
   mine to drive. Cross-functional teams inside the company, contractors and
   third-party vendors are all simply *not my team*, and all recede to grey — so
