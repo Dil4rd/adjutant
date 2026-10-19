@@ -228,13 +228,25 @@
     }
     if (mode === 'merge') {
       tasks = mergeById($state.snapshot(tasks), parsed.tasks)
+      // Don't let the current filters swallow what was just merged: if none of
+      // the incoming stages would be on screen, clear whatever is hiding them.
+      const wouldShow = (t: Task) =>
+        (view.project === 'All' || t.project === view.project) &&
+        (view.showOtherTeams || t.isMyTeam)
+      if (!parsed.tasks.some(wouldShow)) {
+        view.project = 'All'
+        view.showOtherTeams = true
+      }
     } else {
       tasks = parsed.tasks
       view.project = 'All'
+      view.showOtherTeams = true
     }
     if (parsed.name) meta.name = parsed.name
-    // Jump the viewport to where the imported work actually is.
-    view.anchor = firstOfMonth(parseISO(earliestStart(tasks)))
+    // Jump to where the IMPORTED work is, not to the earliest task overall —
+    // merging a late update into an existing roadmap should show you the
+    // update, not scroll back to the start of the programme.
+    view.anchor = firstOfMonth(parseISO(earliestStart(parsed.tasks)))
     resetRun()
     importing = false
     scheduleSave()

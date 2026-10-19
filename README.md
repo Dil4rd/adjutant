@@ -224,8 +224,19 @@ step with an imported file.
 - An inverted range is swapped rather than rejected.
 
 **Import** accepts a bare array of these objects, or an export envelope
-`{ version, app, exportedAt, meta, tasks }`, in replace or merge-by-id mode —
-from a dropped file, a file picker, **or the clipboard**.
+`{ version, app, exportedAt, meta, tasks }` — from a dropped file, a file
+picker, **or the clipboard**.
+
+**Merge (by id) is the default**, because it cannot lose work: stages with a
+matching `id` are updated and everything else is added. Replace discards the
+roadmap currently in the browser, so it is the deliberate choice rather than
+the accidental one. A stage with no `id` gets a fresh one, so it always counts
+as new — exporting first is the way to get ids you can merge against.
+
+After a merge the viewport jumps to the **imported** work rather than to the
+earliest task overall, and if the current filters would hide everything that
+was just merged, those filters are cleared. Both exist so an import is never
+silently invisible.
 
 **Export** downloads a `.json` file in one click, and the ⧉ button beside it
 puts the identical text on the clipboard. Both come from the same

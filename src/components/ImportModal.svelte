@@ -8,7 +8,9 @@
     $props()
 
   let text = $state('')
-  let mode = $state<'replace' | 'merge'>('replace')
+  // Merge is the default because it cannot lose work: unknown stages are
+  // added and known ones updated, whereas replace discards the whole roadmap.
+  let mode = $state<'replace' | 'merge'>('merge')
   let error = $state('')
   let over = $state(false)
   let fileInput: HTMLInputElement
@@ -98,13 +100,18 @@
       <!-- svelte-ignore a11y_label_has_associated_control -->
       <label>On import</label>
       <div class="seg" id="importMode">
-        <button data-mode="replace" class:on={mode === 'replace'} onclick={() => (mode = 'replace')}>
-          Replace all
-        </button>
         <button data-mode="merge" class:on={mode === 'merge'} onclick={() => (mode = 'merge')}>
           Merge (by id)
         </button>
+        <button data-mode="replace" class:on={mode === 'replace'} onclick={() => (mode = 'replace')}>
+          Replace all
+        </button>
       </div>
+      <p class="hint" id="importModeHint">
+        {mode === 'merge'
+          ? 'Stages with a matching id are updated; everything else is added. A stage with no id counts as new.'
+          : 'The roadmap currently in this browser is discarded.'}
+      </p>
     </div>
 
     <p id="importErr" class="error">{error}</p>
