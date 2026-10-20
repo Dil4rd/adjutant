@@ -173,6 +173,12 @@ segment per week row; cut edges lose their border and radius so they read as
 - **Drag** a block to move it; **drag an edge** to resize. Both snap to days and
   cross week rows and month panels.
 - **Other teams** in the filter bar hides every stage not owned by my team.
+- A month has a **fixed width** (capped at `--month-max`, 560px) and the grid
+  is left-aligned, so a month is the same size whichever layout you pick.
+  Without the cap, "1 Month" on a wide screen stretched a single month across
+  the whole window — day columns over 200px wide. The tracks still shrink when
+  the window is too narrow to honour the cap, and every month in a row is
+  identical by construction.
 - The **1 / 2 / 3 Months** toggle sets how many months sit side by side; the
   run continues below, so looking further ahead is a scroll rather than
   repeated clicks on Next. It extends on demand and **stops at one year** from

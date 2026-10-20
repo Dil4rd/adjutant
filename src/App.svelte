@@ -72,6 +72,16 @@
   }
 
   let saveState = $state('')
+  // Transient feedback ("copied", "backup key enrolled") gets its own channel:
+  // sharing saveState meant a debounced autosave landing a moment later could
+  // wipe the message the user was meant to read.
+  let notice = $state('')
+  let noticeTimer: ReturnType<typeof setTimeout> | null = null
+  function flash(message: string) {
+    notice = message
+    if (noticeTimer) clearTimeout(noticeTimer)
+    noticeTimer = setTimeout(() => (notice = ''), 2500)
+  }
   let editing = $state<{ task: Task | null } | null>(null)
   let importing = $state(false)
 
@@ -168,9 +178,9 @@
     if (label === null) return
     try {
       await enrolPasskey(label.trim() || 'Backup key', dek)
-      saveState = `backup key enrolled · ${loadVault()?.recipients.length ?? 0} keys can unlock`
+      flash(`backup key enrolled · ${loadVault()?.recipients.length ?? 0} keys can unlock`)
     } catch (e) {
-      saveState = 'enrolment failed: ' + (e as Error).message
+      flash('enrolment failed: ' + (e as Error).message)
     }
   }
 
@@ -206,7 +216,7 @@
 
   async function doCopy(): Promise<boolean> {
     const r = await copyText(roadmapText())
-    saveState = r.ok ? 'roadmap copied to the clipboard' : r.reason
+    flash(r.ok ? 'roadmap copied to the clipboard' : r.reason)
     return r.ok
   }
 
@@ -339,7 +349,7 @@
       }}
     />
 
-    <Legend {saveState} {surface} />
+    <Legend saveState={notice || saveState} {surface} />
   </div>
 
   {#if editing}
