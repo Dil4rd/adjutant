@@ -1,6 +1,6 @@
 import { sampleTasks } from './fixtures'
 import { describe, expect, it } from 'vitest'
-import { layoutWeek } from '../src/lib/roadmap/layout'
+import { alignLanes, layoutWeek } from '../src/lib/roadmap/layout'
 import { normalizeTask } from '../src/lib/roadmap/model'
 import { monthWeeks, iso } from '../src/lib/roadmap/dates'
 import type { Task } from '../src/lib/roadmap/types'
@@ -127,5 +127,45 @@ describe('whole-month coverage', () => {
       }
     }
     expect(days).toBe(43) // 2026-10-19 .. 2026-11-30 inclusive
+  })
+})
+
+describe('aligning week heights across a row', () => {
+  it('levels each week index to the tallest month on the row', () => {
+    const out = alignLanes([[1, 0, 2], [0, 3, 1], [2, 1, 0]], 3)
+    expect(out).toEqual([[2, 3, 2], [2, 3, 2], [2, 3, 2]])
+  })
+
+  it('treats each row of months independently', () => {
+    // two rows of two: the second row must not inherit the first's heights
+    const out = alignLanes([[5, 5], [1, 1], [0, 0], [2, 2]], 2)
+    expect(out).toEqual([[5, 5], [5, 5], [2, 2], [2, 2]])
+  })
+
+  it('does nothing in a single-column layout', () => {
+    const input = [[1], [4], [0]]
+    expect(alignLanes(input, 1)).toBe(input)
+  })
+
+  it('handles months with different week counts', () => {
+    // a 5-week month beside a 6-week one: shared indices level, the extra stays
+    const out = alignLanes([[1, 1, 1, 1, 1], [0, 0, 0, 0, 0, 3]], 2)
+    expect(out).toEqual([[1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 3]])
+  })
+
+  it('leaves a partial final row alone rather than reaching past the end', () => {
+    const out = alignLanes([[1, 1], [2, 2], [0, 0]], 2)
+    expect(out).toEqual([[2, 2], [2, 2], [0, 0]])
+  })
+
+  it('does not mutate its input', () => {
+    const input = [[1, 0], [0, 2]]
+    const copy = JSON.parse(JSON.stringify(input))
+    alignLanes(input, 2)
+    expect(input).toEqual(copy)
+  })
+
+  it('copes with an empty board', () => {
+    expect(alignLanes([], 3)).toEqual([])
   })
 })

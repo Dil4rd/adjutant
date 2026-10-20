@@ -166,6 +166,14 @@ unambiguously present. Tests assert all of this across both ownership values,
 all three intensities, and adversarial imported colours including pure black
 and white.
 
+Every month on the same line gives each week the **same height**, so the grid
+lines run level across the row. Each month packs its own lanes, so a month
+carrying blocks would otherwise grow rows an empty one does not, and the
+panels' rows drift apart down the page. The levelling takes the per-row
+maximum for each week index, and groups by the number of columns *actually*
+rendered — the layout collapses to fewer columns on a narrow window, and
+aligning against the wrong grouping would look worse than not aligning at all.
+
 Weeks start **Monday** everywhere. A task spanning several weeks renders one
 segment per week row; cut edges lose their border and radius so they read as
 "continues" rather than "ends here", and only true end edges are resizable.

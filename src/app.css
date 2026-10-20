@@ -280,7 +280,10 @@ header.bar button { font-size: 0.78rem; }
 }
 .month h2 .yr { color: var(--dim); font-weight: 400; }
 
-.dow { display: grid; grid-template-columns: repeat(7, 1fr); }
+.dow {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  border-bottom: 1px solid var(--hair);
+}
 .dow div {
   padding: 0 0.3rem 0.3rem; font-size: 0.62rem; color: var(--muted);
   text-transform: uppercase; letter-spacing: 0.09em; text-align: left;
@@ -288,8 +291,10 @@ header.bar button { font-size: 0.78rem; }
 /* weekends read quieter here AND carry a background tint on .day.we */
 .dow div.we { color: var(--dim); }
 
-.week { position: relative; border-top: 1px solid var(--hair); }
-.week:last-child { border-bottom: 1px solid var(--hair); }
+/* Every week carries the SAME borders, so two months on a row cannot differ
+   by the odd pixel just because one of them ends there. The line under the
+   day-name header comes from .dow rather than the first week's top border. */
+.week { position: relative; border-bottom: 1px solid var(--hair); }
 .week-days { display: grid; grid-template-columns: repeat(7, 1fr); }
 .day {
   padding: 0.22rem 0.35rem 0;

@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { DOW, MONTHS, iso, monthWeeks, todayISO } from '../lib/roadmap/dates'
-  import { layoutWeek } from '../lib/roadmap/layout'
+  import { DOW, MONTHS, iso, todayISO } from '../lib/roadmap/dates'
+  import type { WeekLayout } from '../lib/roadmap/layout'
   import type { Surface } from '../lib/roadmap/colors'
-  import type { Task } from '../lib/roadmap/types'
   import TaskBlock from './TaskBlock.svelte'
 
   let {
     year,
     month,
-    tasks,
+    weeks,
+    laneCounts,
     hues,
     surface,
     showProject,
@@ -18,7 +18,10 @@
   }: {
     year: number
     month: number
-    tasks: Task[]
+    /** Laid out by the calendar, which can see across the whole row. */
+    weeks: { days: Date[]; start: string; layout: WeekLayout }[]
+    /** Lane count per week AFTER levelling against the rest of the row. */
+    laneCounts: number[]
     hues: Map<string, string>
     surface: Surface
     showProject: boolean
@@ -28,13 +31,12 @@
   } = $props()
 
   const today = todayISO()
-  const weeks = $derived(
-    monthWeeks(year, month).map((days) => ({
-      days,
-      start: iso(days[0]),
-      layout: layoutWeek(iso(days[0]), tasks),
-    })),
-  )
+  // The levelled count, never the month's own — that is what keeps the grid
+  // lines of every month on this row at the same height.
+  const heightOf = (i: number) => {
+    const count = laneCounts?.[i] ?? weeks[i].layout.laneCount
+    return count ? count * laneH + lanePad : 6
+  }
 </script>
 
 <section class="month">
@@ -45,7 +47,7 @@
     {/each}
   </div>
 
-  {#each weeks as week (week.start)}
+  {#each weeks as week, wi (week.start)}
     <div class="week" data-week-start={week.start}>
       <div class="week-days">
         {#each week.days as day, i (i)}
@@ -61,10 +63,7 @@
           </div>
         {/each}
       </div>
-      <div
-        class="week-blocks"
-        style="height:{week.layout.laneCount ? week.layout.laneCount * laneH + lanePad : 6}px"
-      >
+      <div class="week-blocks" style="height:{heightOf(wi)}px">
         {#each week.layout.segs as seg (seg.task.id)}
           <TaskBlock {seg} hue={hues.get(seg.task.project)} {surface} {showProject} {laneH} {blockH} {lanePad} />
         {/each}

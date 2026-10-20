@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { diffDays, parseISO, shiftISO } from '../lib/roadmap/dates'
+  import { diffDays, iso, monthWeeks, parseISO, shiftISO } from '../lib/roadmap/dates'
+  import { alignLanes, layoutWeek } from '../lib/roadmap/layout'
   import type { Surface } from '../lib/roadmap/colors'
   import type { Task, ViewState } from '../lib/roadmap/types'
   import MonthPanel from './MonthPanel.svelte'
@@ -43,6 +44,19 @@
   const LANE_PAD = 3
 
   let host: HTMLDivElement
+  /**
+   * How many columns are ACTUALLY on screen. The layout collapses to fewer
+   * columns on a narrow window, so this is measured rather than assumed from
+   * view.months — aligning rows against the wrong grouping would look worse
+   * than not aligning at all.
+   */
+  let cols = $state(1)
+
+  function measureCols() {
+    if (!host) return
+    const n = getComputedStyle(host).gridTemplateColumns.split(' ').filter(Boolean).length
+    if (n && n !== cols) cols = n
+  }
 
   const panels = $derived.by(() => {
     const a = parseISO(view.anchor)
@@ -82,19 +96,48 @@
     if (first >= 0) onVisible(first, last)
   }
 
-  // after any re-layout, re-measure once the browser has actually laid out
+  /**
+   * Re-measure after a layout change, waiting for the geometry to STOP moving
+   * before drawing any conclusion from it.
+   *
+   * One frame is not enough: switching month counts leaves the old layout's
+   * height in place for a frame or two, and a single early read saw 709px
+   * against a 689px viewport — "already scrolls" — so the run never grew and
+   * later months became unreachable. Measuring until two consecutive frames
+   * agree removes the race rather than papering over it with a delay.
+   */
+  let lastHeight = -1
+
+  function remeasure(tries = 6) {
+    if (!host) return
+    measureCols()
+    reportVisible()
+    const height = host.scrollHeight
+    if (height !== lastHeight && tries > 0) {
+      lastHeight = height
+      requestAnimationFrame(() => remeasure(tries - 1))
+      return
+    }
+    // A sparse roadmap makes short months, and short months can fit the
+    // viewport entirely — leaving nothing to scroll and no way to reach later
+    // months at all. So grow the run until it actually overflows; extending
+    // re-runs this effect, which converges once it does (or at the cap).
+    if (height <= host.clientHeight + 4) onExtend()
+  }
+
   $effect(() => {
     panels.length
     view.months
-    requestAnimationFrame(() => {
-      reportVisible()
-      // A sparse roadmap makes short months, and short months can fit the
-      // viewport entirely — leaving nothing to scroll and no way to reach
-      // later months at all. So grow the run until it actually overflows.
-      // Extending re-runs this effect, which converges once it does (or once
-      // the parent's cap is hit).
-      if (host && host.scrollHeight <= host.clientHeight + 4) onExtend()
-    })
+    lastHeight = -1 // force at least two measurements after every change
+    requestAnimationFrame(() => remeasure())
+  })
+
+  // The column count changes at the responsive breakpoints, so the alignment
+  // grouping has to follow the window.
+  $effect(() => {
+    const onResize = () => measureCols()
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
   })
 
   function onScroll() {
@@ -103,6 +146,24 @@
     const remaining = host.scrollHeight - host.scrollTop - host.clientHeight
     if (remaining < host.clientHeight * 0.75) onExtend()
   }
+
+  // Week layout is computed HERE rather than inside each month, because
+  // levelling the rows needs to see across the panels on a line.
+  const laidOut = $derived(
+    panels.map((p) =>
+      monthWeeks(p.year, p.month).map((days) => ({
+        days,
+        start: iso(days[0]),
+        layout: layoutWeek(iso(days[0]), tasks),
+      })),
+    ),
+  )
+  const lanes = $derived(
+    alignLanes(
+      laidOut.map((weeks) => weeks.map((w) => w.layout.laneCount)),
+      cols,
+    ),
+  )
 
   /* When every visible task belongs to one project, the project name on each
      block is pure repetition that crowds out the stage title — which is the
@@ -219,11 +280,12 @@
   {:else if hiddenByFilters}
     <p class="empty">Everything is hidden by the current filters.</p>
   {/if}
-  {#each panels as p (p.key)}
+  {#each panels as p, i (p.key)}
     <MonthPanel
       year={p.year}
       month={p.month}
-      {tasks}
+      weeks={laidOut[i]}
+      laneCounts={lanes[i]}
       {hues}
       {surface}
       {showProject}

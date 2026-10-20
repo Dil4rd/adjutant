@@ -52,3 +52,30 @@ export function layoutWeek(weekStartISO: string, tasks: Task[]): WeekLayout {
 
   return { segs, laneCount: lanes.length }
 }
+
+/**
+ * Give every month on the same row the same height for each week.
+ *
+ * Each month packs its own lanes, so a month carrying blocks grows rows that
+ * an empty month does not — and the two panels' grid lines drift apart down
+ * the page. Taking the per-row maximum for each week INDEX keeps those lines
+ * level across the row.
+ *
+ * `perMonth[i]` is month i's own lane counts, week by week. Grouping is by
+ * `cols`, which must be the number of columns actually rendered: the layout
+ * collapses to fewer columns on a narrow window, and aligning against the
+ * wrong grouping would be worse than not aligning at all.
+ */
+export function alignLanes(perMonth: number[][], cols: number): number[][] {
+  if (cols < 2) return perMonth
+  const out = perMonth.map((m) => [...m])
+  for (let start = 0; start < out.length; start += cols) {
+    const row = out.slice(start, start + cols)
+    const weeks = Math.max(...row.map((m) => m.length))
+    for (let w = 0; w < weeks; w++) {
+      const tallest = Math.max(...row.map((m) => m[w] ?? 0))
+      for (const m of row) if (w < m.length) m[w] = tallest
+    }
+  }
+  return out
+}
