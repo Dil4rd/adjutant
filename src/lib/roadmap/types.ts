@@ -50,24 +50,27 @@ export interface Task {
   comments: string
 }
 
-export const TEAM_FILTERS = ['all', 'mine', 'theirs'] as const
-export type TeamFilter = (typeof TEAM_FILTERS)[number]
+export const TEAM_VALUES = ['mine', 'theirs'] as const
+export type TeamValue = (typeof TEAM_VALUES)[number]
 
-export const TEAM_FILTER_LABEL: Record<TeamFilter, string> = {
-  all: 'Everyone',
+export const TEAM_LABEL: Record<TeamValue, string> = {
   mine: 'My team',
   theirs: 'Other teams',
 }
 
-/** The value every filter takes when it is not filtering. */
-export const ANY = 'All'
-
+/**
+ * Every filter is a SET of accepted values, and an empty set means "not
+ * filtering on this dimension" — so the do-nothing state is the empty one
+ * rather than a magic "All" sentinel that could collide with a real project
+ * named "All".
+ */
 export interface ViewState {
   months: 1 | 2 | 3
   anchor: string // ISO first-of-month for the leftmost panel
-  project: string // ANY, or an exact project name
-  executor: string // ANY, or an exact executor name
-  team: TeamFilter
+  projects: string[]
+  executors: string[]
+  teams: TeamValue[]
+  statuses: Status[]
 }
 
 export interface Meta {

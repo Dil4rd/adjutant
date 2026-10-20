@@ -1,11 +1,12 @@
 import { isValidISO, todayISO } from './dates'
 import { isHex, palette } from './colors'
 import {
-  ANY, DEFAULT_STATUS, STATUSES, TEAM_FILTERS,
-  type Status, type Task, type TeamFilter, type ViewState,
+  DEFAULT_STATUS, STATUSES, TEAM_VALUES,
+  type Status, type Task, type TeamValue, type ViewState,
 } from './types'
 
-const ANY_TEAM: TeamFilter = 'all'
+/** The sentinel single-select views used for "not filtering". */
+const LEGACY_ANY = 'All'
 
 export const uid = (): string =>
   't_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4)
@@ -88,12 +89,21 @@ export function projectHues(tasks: Task[]): Map<string, string> {
   return out
 }
 
+/** Keep only the strings from an unknown array. */
+const strings = (v: unknown): string[] =>
+  Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && !!x) : []
+
+/** Keep only the members of a known vocabulary. */
+const within = <T extends string>(v: unknown, allowed: readonly T[]): T[] =>
+  Array.isArray(v) ? v.filter((x): x is T => allowed.includes(x as T)) : []
+
 /**
  * Coerce a stored view into the current shape.
  *
- * Views are persisted, so an older browser will hand back one written before
- * the filter bar existed: `showOtherTeams: false` meant "hide other teams",
- * which is exactly the `mine` filter. Anything unrecognised falls back to not
+ * Views are persisted, so older browsers hand back two earlier formats:
+ *   - `showOtherTeams: false` (before the filter bar) meant "hide other teams"
+ *   - `project: 'Beta' | 'All'`, `team: 'mine' | 'all'` (single-select)
+ * Both map onto the set form. Anything unrecognised falls back to not
  * filtering, because a view that silently hides work is worse than one that
  * shows too much.
  */
@@ -103,30 +113,39 @@ export function normalizeView(raw: unknown, fallbackAnchor: string): ViewState {
   const months = v.months === 1 || v.months === 2 || v.months === 3 ? v.months : 2
   const anchor = isValidISO(v.anchor) ? v.anchor : fallbackAnchor
 
-  let team: TeamFilter = TEAM_FILTERS.includes(v.team as TeamFilter) ? (v.team as TeamFilter) : ANY_TEAM
-  if (!TEAM_FILTERS.includes(v.team as TeamFilter) && typeof v.showOtherTeams === 'boolean') {
-    team = v.showOtherTeams ? 'all' : 'mine'
+  // single-select -> set, with "All" as the old do-nothing sentinel
+  const fromSingle = (plural: unknown, single: unknown): string[] => {
+    const set = strings(plural)
+    if (set.length || !(typeof single === 'string') || !single || single === LEGACY_ANY) return set
+    return [single]
+  }
+
+  let teams = within<TeamValue>(v.teams, TEAM_VALUES)
+  if (!teams.length) {
+    if (v.team === 'mine' || v.team === 'theirs') teams = [v.team]
+    else if (v.team === undefined && v.showOtherTeams === false) teams = ['mine']
   }
 
   return {
     months,
     anchor,
-    project: typeof v.project === 'string' && v.project ? v.project : ANY,
-    executor: typeof v.executor === 'string' && v.executor ? v.executor : ANY,
-    team,
+    projects: fromSingle(v.projects, v.project),
+    executors: fromSingle(v.executors, v.executor),
+    teams,
+    statuses: within<Status>(v.statuses, STATUSES),
   }
 }
 
-/** Does this task survive the current filters? */
+/** Does this task survive the current filters? Dimensions combine with AND. */
 export function matchesView(t: Task, view: ViewState): boolean {
-  if (view.project !== ANY && t.project !== view.project) return false
-  if (view.executor !== ANY && t.executor !== view.executor) return false
-  if (view.team === 'mine' && !t.isMyTeam) return false
-  if (view.team === 'theirs' && t.isMyTeam) return false
+  if (view.projects.length && !view.projects.includes(t.project)) return false
+  if (view.executors.length && !view.executors.includes(t.executor)) return false
+  if (view.teams.length && !view.teams.includes(t.isMyTeam ? 'mine' : 'theirs')) return false
+  if (view.statuses.length && !view.statuses.includes(t.status)) return false
   return true
 }
 
-/** The filter bar's options, drawn from the data rather than hard-coded. */
+/** The filter bar's data-driven options. */
 export function filterOptions(tasks: Task[]): { projects: string[]; executors: string[] } {
   const by = (a: string, b: string) => a.localeCompare(b)
   return {
@@ -137,18 +156,30 @@ export function filterOptions(tasks: Task[]): { projects: string[]; executors: s
 
 /** Is anything actually being filtered out? */
 export const isFiltering = (view: ViewState): boolean =>
-  view.project !== ANY || view.executor !== ANY || view.team !== 'all'
+  view.projects.length > 0 ||
+  view.executors.length > 0 ||
+  view.teams.length > 0 ||
+  view.statuses.length > 0
+
+/** The filters cleared, leaving the layout and position alone. */
+export const clearedFilters = (): Pick<ViewState, 'projects' | 'executors' | 'teams' | 'statuses'> => ({
+  projects: [],
+  executors: [],
+  teams: [],
+  statuses: [],
+})
 
 /**
- * Drop any filter that no longer matches anything in the data.
+ * Drop filter VALUES that no longer match anything in the data.
  *
  * Filter to a project, delete its last stage, and the filter would otherwise
  * point at a project that no longer exists — a blank board with no obvious way
- * back. The same applies to an executor removed by an edit or an import.
+ * back. Team and intensity are fixed vocabularies, so they cannot go stale.
  */
 export function pruneView(view: ViewState, tasks: Task[]): ViewState {
   const { projects, executors } = filterOptions(tasks)
-  const project = view.project !== ANY && !projects.includes(view.project) ? ANY : view.project
-  const executor = view.executor !== ANY && !executors.includes(view.executor) ? ANY : view.executor
-  return project === view.project && executor === view.executor ? view : { ...view, project, executor }
+  const keptP = view.projects.filter((p) => projects.includes(p))
+  const keptE = view.executors.filter((e) => executors.includes(e))
+  const same = keptP.length === view.projects.length && keptE.length === view.executors.length
+  return same ? view : { ...view, projects: keptP, executors: keptE }
 }

@@ -1,7 +1,8 @@
 import { SAMPLE_RECORD as SPEC, sampleTasks } from './fixtures'
 import { describe, expect, it } from 'vitest'
 import {
-  filterOptions, isFiltering, matchesView, normalizeTask, normalizeView, projectHues, pruneView, uid,
+  clearedFilters, filterOptions, isFiltering, matchesView, normalizeTask, normalizeView,
+  projectHues, pruneView, uid,
 } from '../src/lib/roadmap/model'
 import { diffDays, todayISO } from '../src/lib/roadmap/dates'
 import { palette } from '../src/lib/roadmap/colors'
@@ -222,32 +223,56 @@ describe('project hue', () => {
 
 describe('view normalisation', () => {
   const ANCHOR = '2026-10-01'
+  const EMPTY = { months: 2, anchor: ANCHOR, projects: [], executors: [], teams: [], statuses: [] }
 
-  it('fills a fresh view with non-filtering defaults', () => {
+  it('fills a fresh view with empty (non-filtering) sets', () => {
     const v = normalizeView(null, ANCHOR)
-    expect(v).toEqual({ months: 2, anchor: ANCHOR, project: 'All', executor: 'All', team: 'all' })
+    expect(v).toEqual(EMPTY)
     expect(isFiltering(v)).toBe(false)
   })
 
-  it('migrates a view saved before the filter bar existed', () => {
-    // showOtherTeams:false meant "hide other teams" — the `mine` filter
-    expect(normalizeView({ showOtherTeams: false }, ANCHOR).team).toBe('mine')
-    expect(normalizeView({ showOtherTeams: true }, ANCHOR).team).toBe('all')
+  it('migrates the original showOtherTeams flag', () => {
+    expect(normalizeView({ showOtherTeams: false }, ANCHOR).teams).toEqual(['mine'])
+    expect(normalizeView({ showOtherTeams: true }, ANCHOR).teams).toEqual([])
   })
 
-  it('prefers an explicit team filter over the legacy flag', () => {
-    expect(normalizeView({ team: 'theirs', showOtherTeams: false }, ANCHOR).team).toBe('theirs')
+  it('migrates the single-select filter bar', () => {
+    const v = normalizeView({ project: 'Alpha', executor: 'Core Team', team: 'theirs' }, ANCHOR)
+    expect(v.projects).toEqual(['Alpha'])
+    expect(v.executors).toEqual(['Core Team'])
+    expect(v.teams).toEqual(['theirs'])
   })
 
-  it('falls back to showing everything rather than hiding work', () => {
-    for (const junk of [{ team: 'nonsense' }, { team: 5 }, {}, 'string', 42, []]) {
-      expect(normalizeView(junk, ANCHOR).team).toBe('all')
-    }
+  it('treats the old "All" sentinel as not filtering', () => {
+    const v = normalizeView({ project: 'All', executor: 'All', team: 'all' }, ANCHOR)
+    expect(isFiltering(v)).toBe(false)
+  })
+
+  it('prefers the set form when both are present', () => {
+    const v = normalizeView({ projects: ['Beta'], project: 'Alpha' }, ANCHOR)
+    expect(v.projects).toEqual(['Beta'])
   })
 
   it('keeps a valid stored view intact', () => {
-    const v = { months: 3, anchor: '2027-01-01', project: 'Alpha', executor: 'Core Team', team: 'mine' }
+    const v = { months: 3 as const, anchor: '2027-01-01', projects: ['Alpha', 'Beta'],
+      executors: ['Core Team'], teams: ['mine' as const], statuses: ['hold' as const] }
     expect(normalizeView(v, ANCHOR)).toEqual(v)
+  })
+
+  it('discards junk inside the sets rather than trusting it', () => {
+    const v = normalizeView(
+      { projects: ['ok', 5, null, ''], teams: ['mine', 'nonsense'], statuses: ['hold', 'active'] },
+      ANCHOR,
+    )
+    expect(v.projects).toEqual(['ok'])
+    expect(v.teams).toEqual(['mine'])
+    expect(v.statuses).toEqual(['hold']) // "active" was retired
+  })
+
+  it('falls back to showing everything rather than hiding work', () => {
+    for (const junk of ['string', 42, [], { teams: 'mine' }, { projects: 'Alpha' }]) {
+      expect(isFiltering(normalizeView(junk, ANCHOR))).toBe(false)
+    }
   })
 
   it('rejects an out-of-range month count and a malformed anchor', () => {
@@ -259,45 +284,62 @@ describe('view normalisation', () => {
 describe('filtering', () => {
   const ANCHOR = '2026-10-01'
   const base = normalizeView(null, ANCHOR)
-  const mine = normalizeTask({ project: 'Alpha', executor: 'Core Team', isMyTeam: true })
-  const theirs = normalizeTask({ project: 'Beta', executor: 'Partner', isMyTeam: false })
+  const mine = normalizeTask({ project: 'Alpha', executor: 'Core Team', isMyTeam: true, status: 'intensive' })
+  const theirs = normalizeTask({ project: 'Beta', executor: 'Partner', isMyTeam: false, status: 'hold' })
 
-  it('passes everything when nothing is filtered', () => {
+  it('passes everything when every set is empty', () => {
     expect(matchesView(mine, base)).toBe(true)
     expect(matchesView(theirs, base)).toBe(true)
   })
 
-  it('filters by project', () => {
-    const v = { ...base, project: 'Alpha' }
+  it('filters by project, and accepts SEVERAL', () => {
+    expect(matchesView(mine, { ...base, projects: ['Alpha'] })).toBe(true)
+    expect(matchesView(theirs, { ...base, projects: ['Alpha'] })).toBe(false)
+    const both = { ...base, projects: ['Alpha', 'Beta'] }
+    expect(matchesView(mine, both)).toBe(true)
+    expect(matchesView(theirs, both)).toBe(true)
+  })
+
+  it('filters by executor, and accepts several', () => {
+    expect(matchesView(mine, { ...base, executors: ['Core Team'] })).toBe(true)
+    expect(matchesView(theirs, { ...base, executors: ['Core Team'] })).toBe(false)
+    expect(matchesView(theirs, { ...base, executors: ['Core Team', 'Partner'] })).toBe(true)
+  })
+
+  it('filters by team, both ways and both at once', () => {
+    expect(matchesView(mine, { ...base, teams: ['mine'] })).toBe(true)
+    expect(matchesView(theirs, { ...base, teams: ['mine'] })).toBe(false)
+    expect(matchesView(theirs, { ...base, teams: ['theirs'] })).toBe(true)
+    const both = { ...base, teams: ['mine' as const, 'theirs' as const] }
+    expect(matchesView(mine, both)).toBe(true)
+    expect(matchesView(theirs, both)).toBe(true)
+  })
+
+  it('filters by intensity, and accepts several', () => {
+    expect(matchesView(mine, { ...base, statuses: ['intensive'] })).toBe(true)
+    expect(matchesView(theirs, { ...base, statuses: ['intensive'] })).toBe(false)
+    expect(matchesView(theirs, { ...base, statuses: ['hold'] })).toBe(true)
+    const both = { ...base, statuses: ['intensive' as const, 'hold' as const] }
+    expect(matchesView(mine, both)).toBe(true)
+    expect(matchesView(theirs, both)).toBe(true)
+  })
+
+  it('combines dimensions with AND, values within one with OR', () => {
+    const v = { ...base, projects: ['Alpha', 'Beta'], teams: ['mine' as const] }
     expect(matchesView(mine, v)).toBe(true)
-    expect(matchesView(theirs, v)).toBe(false)
-  })
-
-  it('filters by executor', () => {
-    const v = { ...base, executor: 'Partner' }
-    expect(matchesView(mine, v)).toBe(false)
-    expect(matchesView(theirs, v)).toBe(true)
-  })
-
-  it('filters by team, both ways', () => {
-    expect(matchesView(mine, { ...base, team: 'mine' })).toBe(true)
-    expect(matchesView(theirs, { ...base, team: 'mine' })).toBe(false)
-    expect(matchesView(mine, { ...base, team: 'theirs' })).toBe(false)
-    expect(matchesView(theirs, { ...base, team: 'theirs' })).toBe(true)
-  })
-
-  it('combines dimensions with AND', () => {
-    const v = { ...base, project: 'Alpha', executor: 'Core Team', team: 'mine' as const }
-    expect(matchesView(mine, v)).toBe(true)
-    expect(matchesView({ ...mine, executor: 'Someone else' }, v)).toBe(false)
-    expect(matchesView({ ...mine, isMyTeam: false }, v)).toBe(false)
+    expect(matchesView(theirs, v)).toBe(false) // right project, wrong team
   })
 
   it('reports whether anything is being filtered', () => {
     expect(isFiltering(base)).toBe(false)
-    expect(isFiltering({ ...base, project: 'Alpha' })).toBe(true)
-    expect(isFiltering({ ...base, executor: 'Core Team' })).toBe(true)
-    expect(isFiltering({ ...base, team: 'mine' })).toBe(true)
+    expect(isFiltering({ ...base, projects: ['Alpha'] })).toBe(true)
+    expect(isFiltering({ ...base, executors: ['Core Team'] })).toBe(true)
+    expect(isFiltering({ ...base, teams: ['mine'] })).toBe(true)
+    expect(isFiltering({ ...base, statuses: ['hold'] })).toBe(true)
+  })
+
+  it('clears every dimension at once', () => {
+    expect(isFiltering({ ...base, ...clearedFilters() })).toBe(false)
   })
 })
 
@@ -324,29 +366,31 @@ describe('filter options', () => {
 describe('pruning stale filters', () => {
   const ANCHOR = '2026-10-01'
   const tasks = [normalizeTask({ project: 'Alpha', executor: 'Core Team' })]
+  const base = normalizeView(null, ANCHOR)
 
-  it('drops a project filter whose project is gone', () => {
-    const v = { ...normalizeView(null, ANCHOR), project: 'Deleted' }
-    expect(pruneView(v, tasks).project).toBe('All')
+  it('drops only the values that are gone, keeping the rest', () => {
+    const v = { ...base, projects: ['Alpha', 'Deleted'] }
+    expect(pruneView(v, tasks).projects).toEqual(['Alpha'])
   })
 
-  it('drops an executor filter whose executor is gone', () => {
-    const v = { ...normalizeView(null, ANCHOR), executor: 'Departed' }
-    expect(pruneView(v, tasks).executor).toBe('All')
+  it('drops an executor that no longer exists', () => {
+    expect(pruneView({ ...base, executors: ['Departed'] }, tasks).executors).toEqual([])
   })
 
-  it('leaves filters that still match', () => {
-    const v = { ...normalizeView(null, ANCHOR), project: 'Alpha', executor: 'Core Team' }
-    expect(pruneView(v, tasks)).toBe(v) // identity: nothing to change
+  it('leaves filters that still match, by identity', () => {
+    const v = { ...base, projects: ['Alpha'], executors: ['Core Team'] }
+    expect(pruneView(v, tasks)).toBe(v)
   })
 
-  it('never touches the team filter, which cannot go stale', () => {
-    const v = { ...normalizeView(null, ANCHOR), team: 'theirs' as const, project: 'Gone' }
-    expect(pruneView(v, tasks).team).toBe('theirs')
+  it('never touches team or intensity, which cannot go stale', () => {
+    const v = { ...base, teams: ['theirs' as const], statuses: ['hold' as const], projects: ['Gone'] }
+    const out = pruneView(v, tasks)
+    expect(out.teams).toEqual(['theirs'])
+    expect(out.statuses).toEqual(['hold'])
   })
 
   it('clears both when the roadmap is emptied', () => {
-    const v = { ...normalizeView(null, ANCHOR), project: 'Alpha', executor: 'Core Team' }
-    expect(pruneView(v, [])).toMatchObject({ project: 'All', executor: 'All' })
+    const v = { ...base, projects: ['Alpha'], executors: ['Core Team'] }
+    expect(pruneView(v, [])).toMatchObject({ projects: [], executors: [] })
   })
 })

@@ -145,10 +145,11 @@ project, keeping the board coherent.
 Ownership is a single boolean. Cross-functional teams, contractors and vendors
 are all simply *not my team*.
 
-**Other-team work can be hidden entirely** — set the team filter to *My team*.
-*Other teams* does the inverse, which the old show/hide toggle could not
-express. A view saved before the filter bar existed is migrated: its
-`showOtherTeams: false` becomes the *My team* filter.
+**Other-team work can be hidden entirely** — tick *My team* in the team
+filter. *Other teams* does the inverse, which the original show/hide toggle
+could not express. Two older view formats are migrated on load: the
+`showOtherTeams: false` boolean and the later single-select
+`team: 'mine'` / `project: 'All'` shape both map onto the set form.
 
 Chrome colours follow hindsightly's warm near-black; task colours are tuned to
 sit on it, warm end first.
@@ -187,13 +188,19 @@ segment per week row; cut edges lose their border and radius so they read as
   the anchor. Previous / Next / Today jump the anchor and return you to the top.
 - The header reports the months **actually on screen**, not the whole laid-out
   run — after a long scroll, "Oct 2026 – Jun 2030" would tell you nothing.
-- A **filter bar** with three dimensions — project, executor, and team
-  (Everyone / My team / Other teams). They combine with AND, the options are
-  generated from the data so a filter can never offer a value that matches
-  nothing, an active filter is visibly switched on, and **Clear filters**
-  appears only when something is filtered. The choice persists with the view.
-  A filter whose value disappears (its last stage deleted, an executor renamed)
-  releases itself rather than leaving a blank board behind.
+- A **filter bar** with four dimensions — project, executor, team, and
+  intensity. Every one is **multi-select**: values within a dimension combine
+  with OR, dimensions with AND. Each is a button reporting its selection
+  (`All`, the single value, or `N selected`) over a checkbox popover, rather
+  than a `<select multiple>` — the bar stays one line whatever the data holds,
+  and deselecting does not need a ctrl-click.
+- Project and executor options are generated from the data, so a filter can
+  never offer a value matching nothing; team and intensity are fixed
+  vocabularies, always offered in full. An active filter is visibly switched
+  on, and **Clear filters** appears only when something is filtered.
+- Filters persist with the view. A filter *value* that disappears — its last
+  stage deleted, an executor renamed — releases itself, keeping any sibling
+  values that still match, rather than leaving a blank board behind.
 - **Day / night themes**, following the OS until you choose one. The preference
   lives in plain `localStorage`, not the encrypted blob: the lock screen has to
   be drawn before anything is unlocked, and it is not a secret. Block weights

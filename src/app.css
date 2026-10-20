@@ -180,37 +180,56 @@ header.bar button { font-size: 0.78rem; }
 .group.boxed button.icon:hover:not(:disabled) { color: var(--fg); background: var(--hover); }
 
 .filters {
-  display: flex; gap: 0.3rem 0.45rem; flex-wrap: wrap; align-items: center;
+  display: flex; gap: 0.3rem 0.7rem; flex-wrap: wrap; align-items: center;
   padding: 0.4rem 0.75rem;
   border-bottom: 1px solid var(--border);
 }
 /* These sit inline beside their control, so they opt out of the stacked
    caption styling the form labels use. */
 .filters .label {
-  display: inline; margin: 0 0.1rem 0 0;
+  display: inline; margin: 0 0.35rem 0 0;
   font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.1em;
   color: var(--dim);
 }
-.filters .label:not(:first-child) { margin-left: 0.6rem; }
-/* Dropdowns rather than pills: a roadmap can carry a dozen executors, and the
-   bar has to stay one line whatever the data holds. */
-.filters select {
-  width: auto; max-width: 15rem;
-  padding: 0.16rem 0.4rem;
-  font-size: 0.76rem;
-  border-radius: 6px;
-  border-color: var(--hair);
-  color: var(--muted);
-  background: transparent;
+
+/* ---- multi-select filter ---- */
+.fsel { position: relative; display: inline-flex; align-items: center; }
+.fsel-btn {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.16rem 0.45rem; font-size: 0.76rem;
+  border-radius: 6px; border-color: var(--hair); color: var(--muted);
+  max-width: 13rem;
 }
-.filters select:hover { color: var(--fg); }
+.fsel-btn:hover:not(:disabled) { color: var(--fg); }
 /* An active filter is visibly switched on, so a half-filtered board is never
    a mystery. */
-.filters select.on {
-  color: var(--fg);
-  border-color: var(--accent);
-  background: var(--hover);
+.fsel-btn.on { color: var(--fg); border-color: var(--accent); background: var(--hover); }
+.fsel-btn .caret { font-size: 0.6rem; opacity: 0.7; }
+.fsel-pop {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 40;
+  min-width: 11rem; max-width: 18rem; max-height: 15rem; overflow-y: auto;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 8px; padding: 0.3rem;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
 }
+.fsel-all {
+  display: block; width: 100%; text-align: left;
+  border: none; border-bottom: 1px solid var(--hair); border-radius: 0;
+  padding: 0.3rem 0.4rem; margin-bottom: 0.2rem;
+  font-size: 0.76rem; color: var(--muted);
+}
+.fsel-all:disabled { opacity: 0.45; }
+.fsel-opt {
+  display: flex; align-items: center; gap: 0.45rem;
+  padding: 0.25rem 0.4rem; border-radius: 5px; cursor: pointer;
+  text-transform: none; letter-spacing: normal; margin: 0;
+  font-size: 0.78rem; color: var(--fg);
+}
+.fsel-opt:hover { background: var(--hover); }
+.fsel-opt input { width: auto; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.fsel-opt span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fsel-none { margin: 0.3rem 0.4rem; color: var(--dim); font-size: 0.76rem; }
+
 .filters #btnClearFilters { margin-left: 0.6rem; font-size: 0.74rem; }
 
 /* ---------- calendar ---------- */

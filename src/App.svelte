@@ -4,10 +4,10 @@
   import { earliestStart, exportText, mergeById, parseImport } from './lib/roadmap/io'
   import { copyText } from './lib/clipboard'
   import {
-    matchesView, normalizeTask, normalizeView, projectHues, pruneView,
+    clearedFilters, matchesView, normalizeTask, normalizeView, projectHues, pruneView,
   } from './lib/roadmap/model'
   import { clearData, readData, writeData } from './lib/roadmap/storage'
-  import { ANY, type Meta, type Task, type ViewState } from './lib/roadmap/types'
+  import type { Meta, Task, ViewState } from './lib/roadmap/types'
   import {
     applyTheme, resolveTheme, storePref, storedPref, surfaceOf, systemTheme, type ThemePref,
   } from './lib/theme'
@@ -48,11 +48,7 @@
     rendered = view.months * ROWS_AHEAD
     onScreen = { first: 0, last: view.months - 1 }
   }
-  const clearFilters = () => {
-    view.project = ANY
-    view.executor = ANY
-    view.team = 'all'
-  }
+  const clearFilters = () => Object.assign(view, clearedFilters())
 
   let themePref = $state<ThemePref>(storedPref())
   const theme = $derived(resolveTheme(themePref))
@@ -345,7 +341,7 @@
     {#key editing.task?.id ?? 'new'}
     <EditModal
       task={editing.task}
-      defaultProject={view.project !== 'All' ? view.project : ''}
+      defaultProject={view.projects.length === 1 ? view.projects[0] : ''}
       {projects}
       {executors}
       onSave={saveTask}
