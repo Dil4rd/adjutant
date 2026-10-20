@@ -56,7 +56,9 @@ export function normalizeTask(raw: unknown, i = 0): Task {
   return {
     id: str(t.id, 64) || uid(),
     project: str(t.project, 120, 'Unassigned'),
-    stage: str(t.stage, 160) || str(t.title, 160, 'Untitled stage'),
+    // Optional: a stage may be nameless, in which case the project identifies
+    // it. Better an honest blank than an invented "Untitled stage".
+    stage: str(t.stage, 160) || str(t.title, 160),
     executor: str(t.executor, 120) || str(t.owner, 120),
     startDate,
     endDate,

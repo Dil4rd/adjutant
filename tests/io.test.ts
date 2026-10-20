@@ -1,4 +1,5 @@
 import { sampleTasks } from './fixtures'
+import { normalizeTask } from '../src/lib/roadmap/model'
 import { describe, expect, it } from 'vitest'
 import { buildExport, earliestStart, exportText, mergeById, parseImport } from '../src/lib/roadmap/io'
 import type { Meta } from '../src/lib/roadmap/types'
@@ -133,5 +134,39 @@ describe('export text', () => {
   it('handles an empty roadmap without throwing', () => {
     expect(() => exportText(META, [])).not.toThrow()
     expect(JSON.parse(exportText(META, [])).tasks).toEqual([])
+  })
+})
+
+describe('export completeness', () => {
+  /**
+   * Export must carry the WHOLE roadmap. What is on the calendar is a
+   * function of the filters and the twelve-month window; neither has any
+   * business narrowing a backup.
+   */
+  const far = normalizeTask({ id: 'far', project: 'Alpha', stage: 'Years out', startDate: '2031-04-01', endDate: '2031-04-20' })
+  const past = normalizeTask({ id: 'past', project: 'Alpha', stage: 'Long past', startDate: '2019-01-07', endDate: '2019-02-02' })
+  const hidden = normalizeTask({ id: 'hid', project: 'Beta', stage: 'Other team', isMyTeam: false })
+  const all = [far, past, hidden]
+
+  it('includes tasks far outside any rendered window', () => {
+    const ids = buildExport(META, all).tasks.map((t) => t.id)
+    expect(ids).toEqual(['far', 'past', 'hid'])
+  })
+
+  it('counts and lists every project, not just the filtered ones', () => {
+    const env = buildExport(META, all)
+    expect(env.meta.taskCount).toBe(3)
+    expect(env.meta.projects).toEqual(['Alpha', 'Beta'])
+  })
+
+  it('round-trips the whole set', () => {
+    expect(parseImport(exportText(META, all)).tasks).toEqual(all)
+  })
+
+  it('keeps a nameless stage rather than dropping or renaming it', () => {
+    const nameless = normalizeTask({ id: 'n', project: 'Alpha', stage: '' })
+    const back = parseImport(exportText(META, [nameless])).tasks[0]
+    expect(back.stage).toBe('')
+    expect(back).toEqual(nameless)
   })
 })

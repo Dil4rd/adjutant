@@ -121,6 +121,7 @@ label {
   letter-spacing: 0.07em;
 }
 .error { color: var(--danger-fg); font-size: 0.8rem; min-height: 1rem; }
+label .opt { color: var(--dim); font-weight: 400; letter-spacing: 0.04em; }
 .hint { color: var(--muted); font-size: 0.78rem; line-height: 1.6; }
 .hidden { display: none !important; }
 

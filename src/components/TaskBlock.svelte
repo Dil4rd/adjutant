@@ -39,8 +39,11 @@
     ].join(';'),
   )
 
+  /** Project and stage, skipping whichever is absent. */
+  const title = $derived([t.project, t.stage].filter(Boolean).join(' — '))
+
   const tip = $derived(
-    `${t.project} — ${t.stage}` +
+    title +
       (t.executor ? `\nExecutor: ${t.executor}` : '') +
       `\n${t.startDate} → ${t.endDate}` +
       `\n${STATUS_SHORT[t.status]} · ${t.isMyTeam ? 'My team' : 'Not my team'}` +
@@ -58,7 +61,9 @@
   title={tip}
 >
   <div class="handle l" data-edge="start"></div>
-  <div class="t1">{showProject ? `${t.project} · ${t.stage}` : t.stage}</div>
+  <!-- With no stage name the project is the only identifying text, so it is
+       shown even when it would otherwise be suppressed as repetition. -->
+  <div class="t1">{showProject || !t.stage ? [t.project, t.stage].filter(Boolean).join(' · ') : t.stage}</div>
   {#if t.executor}<div class="t2">{t.executor}</div>{/if}
   <div class="handle r" data-edge="end"></div>
 </div>

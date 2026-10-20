@@ -201,7 +201,8 @@
   }
 
   function deleteTask(t: Task) {
-    if (!confirm(`Delete "${t.project} — ${t.stage}"? This cannot be undone.`)) return
+    const name = [t.project, t.stage].filter(Boolean).join(' — ')
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return
     tasks = tasks.filter((x) => x.id !== t.id)
     editing = null
     scheduleSave()

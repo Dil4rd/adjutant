@@ -61,7 +61,6 @@
 
   function save() {
     if (!project.trim()) return (error = 'Project name is required.')
-    if (!stage.trim()) return (error = 'Stage / milestone title is required.')
     if (!startDate || !endDate) return (error = 'Both start and end dates are required.')
     if (endDate < startDate) return (error = 'The end date cannot precede the start date.')
     onSave(
@@ -92,8 +91,13 @@
         </datalist>
       </div>
       <div>
-        <label for="fTitle">Stage / milestone title</label>
-        <input id="fTitle" autocomplete="off" bind:value={stage} />
+        <label for="fTitle">Stage / milestone title <span class="opt">optional</span></label>
+        <input
+          id="fTitle"
+          autocomplete="off"
+          placeholder="Leave blank to label the block by project"
+          bind:value={stage}
+        />
       </div>
     </div>
 

@@ -72,6 +72,15 @@ describe('coercion', () => {
     expect(new Set(Array.from({ length: 200 }, uid)).size).toBe(200)
   })
 
+  it('leaves a missing stage blank rather than inventing a title', () => {
+    expect(normalizeTask({ project: 'P' }).stage).toBe('')
+    expect(normalizeTask({ project: 'P', stage: '' }).stage).toBe('')
+  })
+
+  it('still accepts the legacy title alias for a stage', () => {
+    expect(normalizeTask({ title: 'From title' }).stage).toBe('From title')
+  })
+
   it('survives junk input entirely', () => {
     for (const junk of [null, undefined, 42, 'string', [], true]) {
       expect(() => normalizeTask(junk)).not.toThrow()

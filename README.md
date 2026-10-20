@@ -249,6 +249,10 @@ step with an imported file.
   there is nothing to gain from splitting this into a wider enum.
 - `endDate` is **inclusive**: a stage ending `2026-10-28` occupies the 28th, and
   the next starts on the 29th.
+- `stage` is **optional**. A nameless stage is kept blank rather than given an
+  invented title, and its block is labelled by project — which is then shown
+  even where the project name would otherwise be suppressed as repetition,
+  since it is the only identifying text left. `project` is still required.
 - `id` is generated when absent, and is the key that merge-import updates on.
 - An inverted range is swapped rather than rejected.
 
@@ -284,8 +288,15 @@ A file containing it still imports — every `"active"` stage becomes
 one field the upgrade rewrites. Re-tag anything that was really ticking over as
 `"background"`.
 
-**Export** writes the envelope — tasks *and* metadata — but every object inside
-`tasks` is exactly the shape above, and re-importing an export is a no-op.
+**Export** writes the envelope — tasks *and* metadata — and every object inside
+`tasks` is exactly the shape above, so re-importing an export is a no-op.
+
+It carries the **whole roadmap**, never just what is on screen: filters and the
+twelve-month window decide what the calendar draws, and neither has any
+business narrowing a backup. Stages years in the past or future, and stages
+hidden by an active filter, are all included. The only thing not exported is
+the view itself (layout, anchor, filters), which is a per-browser preference
+rather than part of the roadmap.
 
 ## Layout
 
