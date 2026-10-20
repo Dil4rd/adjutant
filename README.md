@@ -145,8 +145,10 @@ project, keeping the board coherent.
 Ownership is a single boolean. Cross-functional teams, contractors and vendors
 are all simply *not my team*.
 
-**Other-team work can be hidden entirely** — a toggle in the filter bar, with
-the preference persisted alongside the rest of the view.
+**Other-team work can be hidden entirely** — set the team filter to *My team*.
+*Other teams* does the inverse, which the old show/hide toggle could not
+express. A view saved before the filter bar existed is migrated: its
+`showOtherTeams: false` becomes the *My team* filter.
 
 Chrome colours follow hindsightly's warm near-black; task colours are tuned to
 sit on it, warm end first.
@@ -185,7 +187,13 @@ segment per week row; cut edges lose their border and radius so they read as
   the anchor. Previous / Next / Today jump the anchor and return you to the top.
 - The header reports the months **actually on screen**, not the whole laid-out
   run — after a long scroll, "Oct 2026 – Jun 2030" would tell you nothing.
-- A project filter bar generated from the data.
+- A **filter bar** with three dimensions — project, executor, and team
+  (Everyone / My team / Other teams). They combine with AND, the options are
+  generated from the data so a filter can never offer a value that matches
+  nothing, an active filter is visibly switched on, and **Clear filters**
+  appears only when something is filtered. The choice persists with the view.
+  A filter whose value disappears (its last stage deleted, an executor renamed)
+  releases itself rather than leaving a blank board behind.
 - **Day / night themes**, following the OS until you choose one. The preference
   lives in plain `localStorage`, not the encrypted blob: the lock screen has to
   be drawn before anything is unlocked, and it is not a secret. Block weights

@@ -1,6 +1,8 @@
 import { SAMPLE_RECORD as SPEC, sampleTasks } from './fixtures'
 import { describe, expect, it } from 'vitest'
-import { normalizeTask, projectHues, uid } from '../src/lib/roadmap/model'
+import {
+  filterOptions, isFiltering, matchesView, normalizeTask, normalizeView, projectHues, pruneView, uid,
+} from '../src/lib/roadmap/model'
 import { diffDays, todayISO } from '../src/lib/roadmap/dates'
 import { palette } from '../src/lib/roadmap/colors'
 
@@ -215,5 +217,136 @@ describe('project hue', () => {
     const hues = projectHues(sampleTasks())
     expect(hues.size).toBe(1)
     expect([...hues.values()][0]).toBe('#8b5cf6')
+  })
+})
+
+describe('view normalisation', () => {
+  const ANCHOR = '2026-10-01'
+
+  it('fills a fresh view with non-filtering defaults', () => {
+    const v = normalizeView(null, ANCHOR)
+    expect(v).toEqual({ months: 2, anchor: ANCHOR, project: 'All', executor: 'All', team: 'all' })
+    expect(isFiltering(v)).toBe(false)
+  })
+
+  it('migrates a view saved before the filter bar existed', () => {
+    // showOtherTeams:false meant "hide other teams" — the `mine` filter
+    expect(normalizeView({ showOtherTeams: false }, ANCHOR).team).toBe('mine')
+    expect(normalizeView({ showOtherTeams: true }, ANCHOR).team).toBe('all')
+  })
+
+  it('prefers an explicit team filter over the legacy flag', () => {
+    expect(normalizeView({ team: 'theirs', showOtherTeams: false }, ANCHOR).team).toBe('theirs')
+  })
+
+  it('falls back to showing everything rather than hiding work', () => {
+    for (const junk of [{ team: 'nonsense' }, { team: 5 }, {}, 'string', 42, []]) {
+      expect(normalizeView(junk, ANCHOR).team).toBe('all')
+    }
+  })
+
+  it('keeps a valid stored view intact', () => {
+    const v = { months: 3, anchor: '2027-01-01', project: 'Alpha', executor: 'Core Team', team: 'mine' }
+    expect(normalizeView(v, ANCHOR)).toEqual(v)
+  })
+
+  it('rejects an out-of-range month count and a malformed anchor', () => {
+    expect(normalizeView({ months: 7 }, ANCHOR).months).toBe(2)
+    expect(normalizeView({ anchor: 'last tuesday' }, ANCHOR).anchor).toBe(ANCHOR)
+  })
+})
+
+describe('filtering', () => {
+  const ANCHOR = '2026-10-01'
+  const base = normalizeView(null, ANCHOR)
+  const mine = normalizeTask({ project: 'Alpha', executor: 'Core Team', isMyTeam: true })
+  const theirs = normalizeTask({ project: 'Beta', executor: 'Partner', isMyTeam: false })
+
+  it('passes everything when nothing is filtered', () => {
+    expect(matchesView(mine, base)).toBe(true)
+    expect(matchesView(theirs, base)).toBe(true)
+  })
+
+  it('filters by project', () => {
+    const v = { ...base, project: 'Alpha' }
+    expect(matchesView(mine, v)).toBe(true)
+    expect(matchesView(theirs, v)).toBe(false)
+  })
+
+  it('filters by executor', () => {
+    const v = { ...base, executor: 'Partner' }
+    expect(matchesView(mine, v)).toBe(false)
+    expect(matchesView(theirs, v)).toBe(true)
+  })
+
+  it('filters by team, both ways', () => {
+    expect(matchesView(mine, { ...base, team: 'mine' })).toBe(true)
+    expect(matchesView(theirs, { ...base, team: 'mine' })).toBe(false)
+    expect(matchesView(mine, { ...base, team: 'theirs' })).toBe(false)
+    expect(matchesView(theirs, { ...base, team: 'theirs' })).toBe(true)
+  })
+
+  it('combines dimensions with AND', () => {
+    const v = { ...base, project: 'Alpha', executor: 'Core Team', team: 'mine' as const }
+    expect(matchesView(mine, v)).toBe(true)
+    expect(matchesView({ ...mine, executor: 'Someone else' }, v)).toBe(false)
+    expect(matchesView({ ...mine, isMyTeam: false }, v)).toBe(false)
+  })
+
+  it('reports whether anything is being filtered', () => {
+    expect(isFiltering(base)).toBe(false)
+    expect(isFiltering({ ...base, project: 'Alpha' })).toBe(true)
+    expect(isFiltering({ ...base, executor: 'Core Team' })).toBe(true)
+    expect(isFiltering({ ...base, team: 'mine' })).toBe(true)
+  })
+})
+
+describe('filter options', () => {
+  it('offers only values present in the data, sorted and deduped', () => {
+    const { projects, executors } = filterOptions(sampleTasks())
+    expect(projects).toEqual(['Example Programme'])
+    expect(executors).toEqual(['Core Team', 'Partner Team'])
+  })
+
+  it('omits blank executors rather than offering an empty option', () => {
+    const { executors } = filterOptions([
+      normalizeTask({ project: 'P', executor: '' }),
+      normalizeTask({ project: 'P', executor: 'Named' }),
+    ])
+    expect(executors).toEqual(['Named'])
+  })
+
+  it('handles an empty roadmap', () => {
+    expect(filterOptions([])).toEqual({ projects: [], executors: [] })
+  })
+})
+
+describe('pruning stale filters', () => {
+  const ANCHOR = '2026-10-01'
+  const tasks = [normalizeTask({ project: 'Alpha', executor: 'Core Team' })]
+
+  it('drops a project filter whose project is gone', () => {
+    const v = { ...normalizeView(null, ANCHOR), project: 'Deleted' }
+    expect(pruneView(v, tasks).project).toBe('All')
+  })
+
+  it('drops an executor filter whose executor is gone', () => {
+    const v = { ...normalizeView(null, ANCHOR), executor: 'Departed' }
+    expect(pruneView(v, tasks).executor).toBe('All')
+  })
+
+  it('leaves filters that still match', () => {
+    const v = { ...normalizeView(null, ANCHOR), project: 'Alpha', executor: 'Core Team' }
+    expect(pruneView(v, tasks)).toBe(v) // identity: nothing to change
+  })
+
+  it('never touches the team filter, which cannot go stale', () => {
+    const v = { ...normalizeView(null, ANCHOR), team: 'theirs' as const, project: 'Gone' }
+    expect(pruneView(v, tasks).team).toBe('theirs')
+  })
+
+  it('clears both when the roadmap is emptied', () => {
+    const v = { ...normalizeView(null, ANCHOR), project: 'Alpha', executor: 'Core Team' }
+    expect(pruneView(v, [])).toMatchObject({ project: 'All', executor: 'All' })
   })
 })

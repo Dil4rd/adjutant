@@ -3,9 +3,11 @@
   import { addMonths, firstOfMonth, parseISO, todayISO } from './lib/roadmap/dates'
   import { earliestStart, exportText, mergeById, parseImport } from './lib/roadmap/io'
   import { copyText } from './lib/clipboard'
-  import { normalizeTask, projectHues } from './lib/roadmap/model'
+  import {
+    matchesView, normalizeTask, normalizeView, projectHues, pruneView,
+  } from './lib/roadmap/model'
   import { clearData, readData, writeData } from './lib/roadmap/storage'
-  import type { Meta, Task, ViewState } from './lib/roadmap/types'
+  import { ANY, type Meta, type Task, type ViewState } from './lib/roadmap/types'
   import {
     applyTheme, resolveTheme, storePref, storedPref, surfaceOf, systemTheme, type ThemePref,
   } from './lib/theme'
@@ -29,12 +31,7 @@
 
   let meta = $state<Meta>({ version: 1, name: 'Roadmap', updatedAt: null })
   let tasks = $state<Task[]>([])
-  let view = $state<ViewState>({
-    months: 2,
-    anchor: firstOfMonth(new Date()),
-    project: 'All',
-    showOtherTeams: true,
-  })
+  let view = $state<ViewState>(normalizeView(null, firstOfMonth(new Date())))
 
   // How many months are laid out below the anchor. Not persisted: it is a
   // scroll position, not a preference, and it regrows on demand.
@@ -50,6 +47,11 @@
   const resetRun = () => {
     rendered = view.months * ROWS_AHEAD
     onScreen = { first: 0, last: view.months - 1 }
+  }
+  const clearFilters = () => {
+    view.project = ANY
+    view.executor = ANY
+    view.team = 'all'
   }
 
   let themePref = $state<ThemePref>(storedPref())
@@ -85,13 +87,15 @@
   let editing = $state<{ task: Task | null } | null>(null)
   let importing = $state(false)
 
-  const visible = $derived(
-    tasks.filter(
-      (t) =>
-        (view.project === 'All' || t.project === view.project) &&
-        (view.showOtherTeams || t.isMyTeam),
-    ),
-  )
+  const visible = $derived(tasks.filter((t) => matchesView(t, view)))
+
+  // Deleting, editing or importing can remove the very value a filter points
+  // at. Rather than leave the board blank behind a filter that now matches
+  // nothing, drop that filter.
+  $effect(() => {
+    const pruned = pruneView(view, tasks)
+    if (pruned !== view) Object.assign(view, pruned)
+  })
   // Hue identifies the project, so it is derived from the whole dataset — not
   // from whatever happens to be on screen.
   const hues = $derived(projectHues(tasks))
@@ -120,10 +124,7 @@
     if (loaded && Array.isArray(loaded.tasks)) {
       meta = { ...meta, ...loaded.meta }
       tasks = loaded.tasks.map((t) => normalizeTask(t))
-      view = { ...view, ...loaded.view }
-      // a view saved before the toggle existed has no preference recorded
-      if (typeof view.showOtherTeams !== 'boolean') view.showOtherTeams = true
-      if (!view.anchor) view.anchor = firstOfMonth(new Date())
+      view = normalizeView(loaded.view, firstOfMonth(new Date()))
       saveState = 'encrypted · local only'
     } else {
       // Nothing stored and nothing predefined: start on an empty board at the
@@ -240,17 +241,10 @@
       tasks = mergeById($state.snapshot(tasks), parsed.tasks)
       // Don't let the current filters swallow what was just merged: if none of
       // the incoming stages would be on screen, clear whatever is hiding them.
-      const wouldShow = (t: Task) =>
-        (view.project === 'All' || t.project === view.project) &&
-        (view.showOtherTeams || t.isMyTeam)
-      if (!parsed.tasks.some(wouldShow)) {
-        view.project = 'All'
-        view.showOtherTeams = true
-      }
+      if (!parsed.tasks.some((t) => matchesView(t, view))) clearFilters()
     } else {
       tasks = parsed.tasks
-      view.project = 'All'
-      view.showOtherTeams = true
+      clearFilters()
     }
     if (parsed.name) meta.name = parsed.name
     // Jump to where the IMPORTED work is, not to the earliest task overall —
@@ -319,14 +313,9 @@
 
     <Filters
       {tasks}
-      project={view.project}
-      showOtherTeams={view.showOtherTeams}
-      onSelect={(p) => {
-        view.project = p
-        scheduleSave()
-      }}
-      onToggleOtherTeams={() => {
-        view.showOtherTeams = !view.showOtherTeams
+      {view}
+      onChange={(patch) => {
+        Object.assign(view, patch)
         scheduleSave()
       }}
     />

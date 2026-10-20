@@ -1,41 +1,62 @@
 <script lang="ts">
-  import type { Task } from '../lib/roadmap/types'
+  import { filterOptions, isFiltering } from '../lib/roadmap/model'
+  import { ANY, TEAM_FILTERS, TEAM_FILTER_LABEL, type Task, type TeamFilter, type ViewState } from '../lib/roadmap/types'
 
   let {
     tasks,
-    project,
-    showOtherTeams,
-    onSelect,
-    onToggleOtherTeams,
+    view,
+    onChange,
   }: {
     tasks: Task[]
-    project: string
-    showOtherTeams: boolean
-    onSelect: (p: string) => void
-    onToggleOtherTeams: () => void
+    view: ViewState
+    onChange: (patch: Partial<ViewState>) => void
   } = $props()
 
-  const projects = $derived([...new Set(tasks.map((t) => t.project))].sort((a, b) => a.localeCompare(b)))
-  const otherCount = $derived(tasks.filter((t) => !t.isMyTeam).length)
+  // NB: these ids are deliberately prefixed. The edit modal has its own
+  // fProject / fExecutor fields, and an unprefixed id here would duplicate
+  // them in the document whenever that modal is open.
+  // Options come from the data, so a filter can never offer a value that
+  // matches nothing.
+  const options = $derived(filterOptions(tasks))
+  const filtering = $derived(isFiltering(view))
+
+  const clear = () => onChange({ project: ANY, executor: ANY, team: 'all' })
 </script>
 
 <div class="filters" id="filters">
-  <span class="label">Project</span>
-  <button data-project="All" class:on={project === 'All'} onclick={() => onSelect('All')}>All</button>
-  {#each projects as p (p)}
-    <button data-project={p} class:on={project === p} onclick={() => onSelect(p)}>{p}</button>
-  {/each}
-
-  <span class="spacer"></span>
-  <button
-    id="btnOtherTeams"
-    class="toggle"
-    class:on={showOtherTeams}
-    aria-pressed={showOtherTeams}
-    title={showOtherTeams ? 'Hide work owned by other teams' : 'Show work owned by other teams'}
-    onclick={onToggleOtherTeams}
+  <label class="label" for="filterProject">Project</label>
+  <select
+    id="filterProject"
+    class:on={view.project !== ANY}
+    value={view.project}
+    onchange={(e) => onChange({ project: (e.currentTarget as HTMLSelectElement).value })}
   >
-    <span class="box" aria-hidden="true"></span>
-    Other teams{otherCount ? ` (${otherCount})` : ''}
-  </button>
+    <option value={ANY}>All</option>
+    {#each options.projects as p (p)}<option value={p}>{p}</option>{/each}
+  </select>
+
+  <label class="label" for="filterExecutor">Executor</label>
+  <select
+    id="filterExecutor"
+    class:on={view.executor !== ANY}
+    value={view.executor}
+    onchange={(e) => onChange({ executor: (e.currentTarget as HTMLSelectElement).value })}
+  >
+    <option value={ANY}>All</option>
+    {#each options.executors as x (x)}<option value={x}>{x}</option>{/each}
+  </select>
+
+  <label class="label" for="filterTeam">Team</label>
+  <select
+    id="filterTeam"
+    class:on={view.team !== 'all'}
+    value={view.team}
+    onchange={(e) => onChange({ team: (e.currentTarget as HTMLSelectElement).value as TeamFilter })}
+  >
+    {#each TEAM_FILTERS as t (t)}<option value={t}>{TEAM_FILTER_LABEL[t]}</option>{/each}
+  </select>
+
+  {#if filtering}
+    <button id="btnClearFilters" class="link" onclick={clear}>Clear filters</button>
+  {/if}
 </div>

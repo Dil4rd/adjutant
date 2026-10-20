@@ -50,12 +50,24 @@ export interface Task {
   comments: string
 }
 
+export const TEAM_FILTERS = ['all', 'mine', 'theirs'] as const
+export type TeamFilter = (typeof TEAM_FILTERS)[number]
+
+export const TEAM_FILTER_LABEL: Record<TeamFilter, string> = {
+  all: 'Everyone',
+  mine: 'My team',
+  theirs: 'Other teams',
+}
+
+/** The value every filter takes when it is not filtering. */
+export const ANY = 'All'
+
 export interface ViewState {
   months: 1 | 2 | 3
   anchor: string // ISO first-of-month for the leftmost panel
-  project: string // "All" or an exact project name
-  /** Show work owned by anyone other than my team. Persisted with the view. */
-  showOtherTeams: boolean
+  project: string // ANY, or an exact project name
+  executor: string // ANY, or an exact executor name
+  team: TeamFilter
 }
 
 export interface Meta {

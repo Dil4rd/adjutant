@@ -180,38 +180,38 @@ header.bar button { font-size: 0.78rem; }
 .group.boxed button.icon:hover:not(:disabled) { color: var(--fg); background: var(--hover); }
 
 .filters {
-  display: flex; gap: 0.3rem; flex-wrap: wrap; align-items: center;
+  display: flex; gap: 0.3rem 0.45rem; flex-wrap: wrap; align-items: center;
   padding: 0.4rem 0.75rem;
   border-bottom: 1px solid var(--border);
 }
+/* These sit inline beside their control, so they opt out of the stacked
+   caption styling the form labels use. */
 .filters .label {
+  display: inline; margin: 0 0.1rem 0 0;
   font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.1em;
-  color: var(--dim); margin-right: 0.25rem;
+  color: var(--dim);
 }
-.filters button {
-  padding: 0.18rem 0.55rem; font-size: 0.76rem; border-radius: 999px;
-  border-color: var(--hair); color: var(--muted);
+.filters .label:not(:first-child) { margin-left: 0.6rem; }
+/* Dropdowns rather than pills: a roadmap can carry a dozen executors, and the
+   bar has to stay one line whatever the data holds. */
+.filters select {
+  width: auto; max-width: 15rem;
+  padding: 0.16rem 0.4rem;
+  font-size: 0.76rem;
+  border-radius: 6px;
+  border-color: var(--hair);
+  color: var(--muted);
+  background: transparent;
 }
-.filters button:hover:not(.on) { color: var(--fg); }
-.filters button.on { color: #fff; }
-
-/* A visibility switch, not a filter pill — it reads as a checkbox so it is
-   clearly a toggle rather than another project to select. */
-.filters button.toggle {
-  display: inline-flex; align-items: center; gap: 0.4rem;
-  border-radius: 6px; margin-left: auto;
-  background: transparent; border-color: var(--border); color: var(--muted);
+.filters select:hover { color: var(--fg); }
+/* An active filter is visibly switched on, so a half-filtered board is never
+   a mystery. */
+.filters select.on {
+  color: var(--fg);
+  border-color: var(--accent);
+  background: var(--hover);
 }
-.filters button.toggle .box {
-  width: 11px; height: 11px; border-radius: 3px;
-  border: 1px solid var(--dim); background: transparent;
-}
-.filters button.toggle.on { background: transparent; color: var(--fg); border-color: var(--border); }
-.filters button.toggle.on .box {
-  background: var(--accent-fill); border-color: var(--accent-fill);
-  box-shadow: inset 0 0 0 1.5px var(--panel);
-}
-.filters button.toggle:not(.on) { color: var(--dim); }
+.filters #btnClearFilters { margin-left: 0.6rem; font-size: 0.74rem; }
 
 /* ---------- calendar ---------- */
 #months {

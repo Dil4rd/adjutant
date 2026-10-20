@@ -1,6 +1,11 @@
 import { isValidISO, todayISO } from './dates'
 import { isHex, palette } from './colors'
-import { DEFAULT_STATUS, STATUSES, type Status, type Task } from './types'
+import {
+  ANY, DEFAULT_STATUS, STATUSES, TEAM_FILTERS,
+  type Status, type Task, type TeamFilter, type ViewState,
+} from './types'
+
+const ANY_TEAM: TeamFilter = 'all'
 
 export const uid = (): string =>
   't_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4)
@@ -81,4 +86,69 @@ export function projectHues(tasks: Task[]): Map<string, string> {
     if (pick) out.set(project, pick.color)
   }
   return out
+}
+
+/**
+ * Coerce a stored view into the current shape.
+ *
+ * Views are persisted, so an older browser will hand back one written before
+ * the filter bar existed: `showOtherTeams: false` meant "hide other teams",
+ * which is exactly the `mine` filter. Anything unrecognised falls back to not
+ * filtering, because a view that silently hides work is worse than one that
+ * shows too much.
+ */
+export function normalizeView(raw: unknown, fallbackAnchor: string): ViewState {
+  const v: Record<string, unknown> = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
+
+  const months = v.months === 1 || v.months === 2 || v.months === 3 ? v.months : 2
+  const anchor = isValidISO(v.anchor) ? v.anchor : fallbackAnchor
+
+  let team: TeamFilter = TEAM_FILTERS.includes(v.team as TeamFilter) ? (v.team as TeamFilter) : ANY_TEAM
+  if (!TEAM_FILTERS.includes(v.team as TeamFilter) && typeof v.showOtherTeams === 'boolean') {
+    team = v.showOtherTeams ? 'all' : 'mine'
+  }
+
+  return {
+    months,
+    anchor,
+    project: typeof v.project === 'string' && v.project ? v.project : ANY,
+    executor: typeof v.executor === 'string' && v.executor ? v.executor : ANY,
+    team,
+  }
+}
+
+/** Does this task survive the current filters? */
+export function matchesView(t: Task, view: ViewState): boolean {
+  if (view.project !== ANY && t.project !== view.project) return false
+  if (view.executor !== ANY && t.executor !== view.executor) return false
+  if (view.team === 'mine' && !t.isMyTeam) return false
+  if (view.team === 'theirs' && t.isMyTeam) return false
+  return true
+}
+
+/** The filter bar's options, drawn from the data rather than hard-coded. */
+export function filterOptions(tasks: Task[]): { projects: string[]; executors: string[] } {
+  const by = (a: string, b: string) => a.localeCompare(b)
+  return {
+    projects: [...new Set(tasks.map((t) => t.project))].sort(by),
+    executors: [...new Set(tasks.map((t) => t.executor).filter(Boolean))].sort(by),
+  }
+}
+
+/** Is anything actually being filtered out? */
+export const isFiltering = (view: ViewState): boolean =>
+  view.project !== ANY || view.executor !== ANY || view.team !== 'all'
+
+/**
+ * Drop any filter that no longer matches anything in the data.
+ *
+ * Filter to a project, delete its last stage, and the filter would otherwise
+ * point at a project that no longer exists — a blank board with no obvious way
+ * back. The same applies to an executor removed by an edit or an import.
+ */
+export function pruneView(view: ViewState, tasks: Task[]): ViewState {
+  const { projects, executors } = filterOptions(tasks)
+  const project = view.project !== ANY && !projects.includes(view.project) ? ANY : view.project
+  const executor = view.executor !== ANY && !executors.includes(view.executor) ? ANY : view.executor
+  return project === view.project && executor === view.executor ? view : { ...view, project, executor }
 }
