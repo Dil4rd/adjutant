@@ -4,6 +4,7 @@
     "target": "ES2022",
     "useDefineForClassFields": true,
     "module": "ESNext",
+    "types": ["node"],
     "resolveJsonModule": true,
     "allowJs": false,
     "checkJs": false,
