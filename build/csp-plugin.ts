@@ -22,44 +22,50 @@ export function cspPlugin(): Plugin {
   return {
     name: 'inline-csp',
     enforce: 'post',
-    generateBundle(_options, bundle) {
-      for (const file of Object.values(bundle)) {
-        if (file.type !== 'asset' || !file.fileName.endsWith('.html')) continue
+    // `enforce` only orders plugins; hook-level `order` wins over it. Singlefile
+    // inlines in a post-ordered generateBundle, so this hook must be post-ordered
+    // too (and listed after it) or it hashes nothing and emits script-src 'none'.
+    generateBundle: {
+      order: 'post',
+      handler(_options, bundle) {
+        for (const file of Object.values(bundle)) {
+          if (file.type !== 'asset' || !file.fileName.endsWith('.html')) continue
 
-        let html =
-          typeof file.source === 'string'
-            ? file.source
-            : Buffer.from(file.source).toString('utf8')
+          let html =
+            typeof file.source === 'string'
+              ? file.source
+              : Buffer.from(file.source).toString('utf8')
 
-        const scriptHashes = new Set<string>()
-        const scriptRe = /<script\b[^>]*>([\s\S]*?)<\/script>/gi
-        for (const m of html.matchAll(scriptRe)) {
-          const body = m[1]
-          if (body && body.trim().length) scriptHashes.add(`'sha256-${sha256(body)}'`)
+          const scriptHashes = new Set<string>()
+          const scriptRe = /<script\b[^>]*>([\s\S]*?)<\/script>/gi
+          for (const m of html.matchAll(scriptRe)) {
+            const body = m[1]
+            if (body && body.trim().length) scriptHashes.add(`'sha256-${sha256(body)}'`)
+          }
+
+          const csp = [
+            `default-src 'none'`,
+            `script-src ${[...scriptHashes].join(' ') || `'none'`}`,
+            // Inline <style> blocks + element style attributes (block geometry).
+            `style-src 'self' 'unsafe-inline'`,
+            `img-src 'self' data:`,
+            `connect-src 'none'`,
+            `base-uri 'none'`,
+            `form-action 'none'`,
+            // NB: no `frame-ancestors` — browsers ignore it when delivered via
+            // <meta> and log a console error for it. Clickjacking protection has
+            // to come from a real header (X-Frame-Options / frame-ancestors) on
+            // whatever serves this file; see README.
+          ].join('; ')
+
+          const meta = `<meta http-equiv="Content-Security-Policy" content="${csp}">`
+          html = /<head[^>]*>/i.test(html)
+            ? html.replace(/<head([^>]*)>/i, `<head$1>\n    ${meta}`)
+            : meta + html
+
+          file.source = html
         }
-
-        const csp = [
-          `default-src 'none'`,
-          `script-src ${[...scriptHashes].join(' ') || `'none'`}`,
-          // Inline <style> blocks + element style attributes (block geometry).
-          `style-src 'self' 'unsafe-inline'`,
-          `img-src 'self' data:`,
-          `connect-src 'none'`,
-          `base-uri 'none'`,
-          `form-action 'none'`,
-          // NB: no `frame-ancestors` — browsers ignore it when delivered via
-          // <meta> and log a console error for it. Clickjacking protection has
-          // to come from a real header (X-Frame-Options / frame-ancestors) on
-          // whatever serves this file; see README.
-        ].join('; ')
-
-        const meta = `<meta http-equiv="Content-Security-Policy" content="${csp}">`
-        html = /<head[^>]*>/i.test(html)
-          ? html.replace(/<head([^>]*)>/i, `<head$1>\n    ${meta}`)
-          : meta + html
-
-        file.source = html
-      }
+      },
     },
   }
 }
