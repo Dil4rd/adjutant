@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitest/config'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import { viteSingleFile } from 'vite-plugin-singlefile'
-import { cspPlugin } from './build/csp-plugin'
+import { cspPlugin } from './build/csp-plugin.ts'
 
 // Release build → a single self-contained index.html (all JS/CSS inlined),
 // with a strict Content-Security-Policy whose script hashes are computed

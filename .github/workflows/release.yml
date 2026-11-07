@@ -13,7 +13,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Same build as local: exports dist/index.html.
       - name: Build single-file artifact
@@ -23,7 +23,7 @@ jobs:
         run: cp dist/index.html "adjutant-${GITHUB_REF_NAME}.html"
 
       - name: Create release and attach the artifact
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: adjutant-${{ github.ref_name }}.html
           generate_release_notes: true
